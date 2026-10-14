@@ -4,12 +4,12 @@
 <title>副業会計・確定申告管理</title>
 <style>
 :root{--bg:#0b1220;--bg2:#0e1830;--card:#121e36;--bd:#22324f;--fg:#e8eefc;--mut:#8ea0c0;--ac:#d4af37;--tl:#2dd4bf;--up:#34d399;--dn:#f87171;--wn:#fbbf24}
-*{box-sizing:border-box}html,body{overflow-x:hidden;max-width:100%}pre{white-space:pre-wrap;word-break:break-all}
+*{box-sizing:border-box}body{overflow-x:clip;max-width:100%}pre{white-space:pre-wrap;word-break:break-all}
 body{margin:0;background:radial-gradient(1200px 600px at 80% -10%,#16294d,transparent),var(--bg);color:var(--fg);font:15px/1.65 system-ui,"Hiragino Sans","Meiryo",sans-serif}
-.shell{display:flex;min-height:100vh}.ct{flex:1;min-width:0}
-nav{width:226px;flex:none;background:var(--bg2);border-right:1px solid var(--bd);padding:14px 10px;position:sticky;top:0;height:100vh;overflow-y:auto}
+.shell{min-height:100vh}.ct{margin-left:226px;min-width:0}
+nav{width:226px;background:var(--bg2);border-right:1px solid var(--bd);padding:10px 8px;position:fixed;left:0;top:0;bottom:0;z-index:6;overflow-y:auto;scrollbar-width:none}nav::-webkit-scrollbar{display:none}
 .logo{font-weight:800;letter-spacing:.08em;color:var(--ac);padding:4px 8px 12px;font-size:14px}
-nav button{display:block;width:100%;text-align:left;border:0;background:none;color:var(--mut);padding:9px 10px;border-radius:8px;cursor:pointer;font:inherit}
+nav button{display:block;width:100%;text-align:left;border:0;background:none;color:var(--mut);padding:6px 10px;border-radius:8px;cursor:pointer;font:inherit;font-size:14px}
 nav button:hover{background:#17274a;color:var(--fg)}
 nav button.on{background:linear-gradient(90deg,#1d3260,#14223f);color:var(--ac);font-weight:700;box-shadow:inset 3px 0 var(--ac)}
 header{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:12px 18px;border-bottom:1px solid var(--bd);background:rgba(11,18,32,.85);position:sticky;top:0;z-index:5;backdrop-filter:blur(8px)}
@@ -36,9 +36,10 @@ button.b{background:linear-gradient(135deg,#e6c34f,#b8902a);color:#1a1405;border
 button.s{background:transparent;color:var(--ac);border:1px solid var(--ac)}
 details{border-bottom:1px solid var(--bd);padding:6px 0}summary{cursor:pointer;color:var(--ac)}
 #toast{position:fixed;right:16px;bottom:16px;background:var(--up);color:#06281d;padding:10px 16px;border-radius:10px;font-weight:700;z-index:9}
-@media(max-width:860px){.shell{display:block}nav{width:auto;height:auto;position:static;display:flex;flex-wrap:wrap;gap:2px;border-right:0;border-bottom:1px solid var(--bd)}.logo{width:100%}nav button{width:auto;padding:7px 9px;font-size:13px}main{padding:12px}}
+@media(max-width:860px){.ct{margin-left:0}nav{width:auto;height:auto;position:static;overflow:visible;display:flex;flex-wrap:wrap;gap:2px;border-right:0;border-bottom:1px solid var(--bd)}.logo{width:100%}nav button{width:auto;padding:7px 9px;font-size:13px}main{padding:12px}}
 @media(max-width:720px){table,tbody{display:block}tr.h{display:none}tr{display:block;border:1px solid var(--bd);border-radius:8px;margin-bottom:8px;padding:4px 8px}td{display:flex;justify-content:space-between;gap:8px;border:0;padding:3px 2px;text-align:right!important}td::before{content:attr(data-l);color:var(--mut);text-align:left;flex:none}}
-@media print{nav,header,button,.np,.help{display:none}body{background:#fff;color:#000}.card{box-shadow:none;background:#fff;color:#000}}
+.pr{display:none}
+@media print{@page{size:A4;margin:14mm}nav,header,button,.np,.help{display:none!important}.ct{margin-left:0}body{background:#fff;color:#000;font-size:11pt}.card{box-shadow:none;background:#fff;color:#000;border:1px solid #888;break-inside:avoid}.pr{display:block!important}th,td{color:#000;border-color:#999}.up,.dn,.kpi b{color:#000}.warn{color:#000;border-color:#000;background:#fff}}
 </style></head><body>
 <div class="shell"><nav id="nav"></nav><div class="ct"><header><h1>副業会計・確定申告管理</h1><span id="st" class="badge">起動中</span><label style="display:flex;gap:6px;align-items:center">対象年 <select id="yr" onchange="S.year=+this.value;R()"></select></label></header><main id="app"></main></div></div>
 <script>
@@ -47,43 +48,55 @@ const CATS=['通信費','消耗品費','旅費交通費','広告宣伝費','支�
 const S={db:{businesses:[],income:[],expense:[],salary:[],meta:{}},year:new Date().getFullYear(),tab:'dash',edit:null};
 const ICON={guide:'🧭',dash:'📈',businesses:'🏢',income:'💰',expense:'🧾',salary:'💼',owner:'🔁',assets:'🖥',invest:'📊',ledger:'📚',report:'📑',accounts:'🗂',opening:'🏦',manual:'✍',import:'📥',data:'💾',notes:'⚠'};
 const TABS={guide:'はじめに',dash:'ダッシュボード',businesses:'事業・副業',income:'収入',expense:'支出・経費',salary:'給与',owner:'事業主貸借',assets:'固定資産',invest:'投資取引',ledger:'仕訳・帳簿',report:'申告準備',accounts:'勘定科目',opening:'期首残高',manual:'手動仕訳',import:'CSV取込',data:'データ・テスト',notes:'確認事項'};
+const PAY=['普通預金(銀行振込・口座引落)','現金','クレジットカード(後日引落)','未払金(後払い)','個人資金で立替(事業主借)'];
 const ENT={
 businesses:{f:[['name','事業名*','text'],['category','管理用カテゴリ','text'],['tax','税務上の所得区分(要確認)','sel',TAX],['blue','青色申告','sel',['未確認','対象','対象外']],['start','開始日','date'],['end','終了日','date'],['active','状態','sel',['有効','無効']],['note','備考','text']],cols:['name','category','tax','blue','active']},
-income:{f:[['date','発生日*','date'],['paid','入金日','date'],['biz','事業*','biz'],['partner','取引先・PF','text'],['desc','内容','text'],['gross','売上(税込)*','num'],['fee','手数料','num'],['wh','源泉徴収税額','num'],['status','入金状況','sel',['入金済','未入金']],['inv','請求書番号','text'],['ref','証憑ファイル名','text'],['note','備考','text']],cols:['date','biz','partner','gross','fee','wh','dep','status']},
-expense:{f:[['date','支払日*','date'],['payee','支払先','text'],['desc','内容','text'],['amount','金額*','num'],['biz','事業*','biz'],['cat','経費カテゴリ','sel',CATS],['ratio','事業使用割合%','num'],['basis','按分の根拠','text'],['method','支払方法','text'],['ref','証憑ファイル名','text']],cols:['date','payee','desc','amount','biz','cat','ratio','ded']},
-salary:{f:[['payer','支払者*','text'],['year','対象年*','num'],['gross','支払金額*','num'],['wh','源泉徴収税額','num'],['social','社会保険料等','num'],['ye','年末調整','sel',['済','未','不明']],['chk','源泉徴収票の確認','sel',['未確認','確認済']],['note','備考','text']],cols:['payer','year','gross','wh','social','ye','chk']},
+income:{f:[['date','売上計上日*','date'],['paid','入金日(入金後に入力)','date'],['biz','事業*','biz'],['partner','取引先・PF','text'],['desc','内容','text'],['gross','売上(税込)*','num'],['fee','手数料','num'],['wh','源泉徴収税額','num'],['status','入金状況','sel',['入金済','未入金']],['inv','請求書番号','text'],['ref','証憑ファイル名','text'],['note','備考','text']],cols:['date','biz','partner','gross','fee','wh','dep','status']},
+expense:{f:[['date','支払日*','date'],['payee','支払先','text'],['desc','内容','text'],['amount','金額*','num'],['biz','事業*','biz'],['cat','経費カテゴリ','sel',CATS],['ratio','事業使用割合%','num'],['basis','按分の根拠','text'],['pay','支払方法','sel',PAY],['settle','引落・支払日(カード・未払の場合)','date'],['ref','証憑ファイル名','text']],cols:['date','payee','desc','amount','biz','cat','ratio','ded']},
+salary:{f:[['payer','支払者*','text'],['year','対象年*','num'],['month','月','sel',['1','2','3','4','5','6','7','8','9','10','11','12','(月別未入力・年額)']],['kind','区分','sel',['給与','賞与']],['gross','支給額(総支給)*','num'],['social','社会保険料(健保・厚生年金・雇用保険等)','num'],['wh','源泉所得税','num'],['ye','年末調整','sel',['済','未','不明']],['chk','源泉徴収票の確認','sel',['未確認','確認済']],['note','備考','text']],cols:['payer','year','month','kind','gross','social','wh']},
 owner:{f:[['date','日付*','date'],['kind','区分','sel',['事業主貸','事業主借']],['amount','金額*','num'],['acct','口座','sel',['普通預金','現金']],['note','備考','text']],cols:['date','kind','amount','acct','note']},
-assets:{f:[['aname','資産名*','text'],['buy','購入日*','date'],['cost','取得価額*','num'],['start','使用開始日*','date'],['ratio','事業使用割合%','num'],['life','耐用年数*','num'],['sold','売却・廃棄日','date'],['note','備考(償却方法の根拠等)','text']],cols:['aname','buy','cost','ratio','life','adep','abv']},
+assets:{f:[['aname','資産名*','text'],['akind','資産区分','sel',['器具備品','ソフトウェア','車両運搬具','その他(要確認)']],['buy','取得日*','date'],['cost','取得価額*','num'],['start','使用開始日*','date'],['ratio','事業使用割合%','num'],['life','耐用年数*','num'],['amethod','償却方法','sel',['定額法(仮計算)','少額・一括など(要確認・自動計算なし)']],['sold','売却・廃棄日','date'],['note','備考(根拠等)','text']],cols:['aname','buy','cost','ratio','life','abv0','adep','abv']},
 invest:{f:[['date','売買日*','date'],['acct','口座区分','sel',['特定口座(源泉あり)','特定口座(源泉なし)','一般口座','NISA口座']],['kind','商品','sel',['現物株','信用取引','投資信託','FX','先物','暗号資産','配当・分配金']],['code','銘柄コード・名称','text'],['side','売買','sel',['買','売','配当']],['qty','数量','num'],['price','単価','num'],['fee','手数料','num'],['realized','実現損益(手入力)','num'],['wh','源泉徴収税額','num'],['note','備考(申告要否・繰越等)','text']],cols:['date','acct','kind','code','side','realized','wh']},
 accounts:{f:[['acname','勘定科目名*','text'],['actype','種別','sel',['費用','収益','資産','負債']],['note','備考','text']],cols:['acname','actype','note']},
 manual:{f:[['date','日付*','date'],['mdr','借方科目','acc'],['mcr','貸方科目','acc'],['amount','金額*','num'],['memo','摘要','text']],cols:['date','mdr','mcr','amount','memo']},
 opening:{f:[['year','対象年*','num'],['oacct','科目','acc'],['amount','期首残高*','num']],cols:['year','oacct','amount']}};
-const L={note:'備考',acname:'勘定科目名',actype:'種別',mdr:'借方',mcr:'貸方',memo:'摘要',oacct:'科目',aname:'資産名',buy:'購入日',cost:'取得価額',life:'耐用年数',adep:'当年償却費(仮)',abv:'期末簿価(仮)',kind:'区分',acct:'口座',code:'銘柄',side:'売買',realized:'実現損益',name:'事業名',category:'カテゴリ',tax:'所得区分',blue:'青色',active:'状態',date:'日付',biz:'事業',partner:'取引先',gross:'金額',fee:'手数料',wh:'源泉',dep:'入金額',status:'入金',payee:'支払先',desc:'内容',amount:'金額',cat:'科目',ratio:'割合%',ded:'経費算入額',payer:'支払者',year:'年',social:'社保',ye:'年末調整',chk:'確認'};
-const NUM=new Set(['cost','adep','abv','realized','qty','gross','fee','wh','dep','amount','ded','social','ratio']);
+const L={month:'月',abv0:'期首簿価(仮)',note:'備考',acname:'勘定科目名',actype:'種別',mdr:'借方',mcr:'貸方',memo:'摘要',oacct:'科目',aname:'資産名',buy:'購入日',cost:'取得価額',life:'耐用年数',adep:'当年償却費(仮)',abv:'期末簿価(仮)',kind:'区分',acct:'口座',code:'銘柄',side:'売買',realized:'実現損益',name:'事業名',category:'カテゴリ',tax:'所得区分',blue:'青色',active:'状態',date:'日付',biz:'事業',partner:'取引先',gross:'金額',fee:'手数料',wh:'源泉',dep:'入金額',status:'入金',payee:'支払先',desc:'内容',amount:'金額',cat:'科目',ratio:'割合%',ded:'経費算入額',payer:'支払者',year:'年',social:'社保',ye:'年末調整',chk:'確認'};
+const NUM=new Set(['abv0','cost','adep','abv','realized','qty','gross','fee','wh','dep','amount','ded','social','ratio']);
 const yen=n=>(+n||0).toLocaleString('ja-JP');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 // ---- 計算（純粋関数）----
 const calc={dep:r=>(+r.gross||0)-(+r.fee||0)-(+r.wh||0),
  ded:r=>Math.round((+r.amount||0)*(r.ratio===''||r.ratio==null?100:+r.ratio)/100),
- summary(db,y){const inY=d=>String(d||'').startsWith(y),out={salary:0,biz:{},unpaid:0,cat:{}};
+ summary(db,y){const inY=d=>String(d||'').startsWith(y),out={salary:0,biz:{},unpaid:0,nopaid:0,cat:{}};
   db.salary.filter(s=>+s.year===y).forEach(s=>out.salary+=+s.gross||0);
   const B=id=>out.biz[id]||(out.biz[id]={sales:0,exp:0});
-  db.income.filter(r=>inY(r.date)).forEach(r=>{B(r.biz).sales+=+r.gross||0;if(r.status==='未入金')out.unpaid+=calc.dep(r)});
+  db.income.filter(r=>inY(r.date)).forEach(r=>B(r.biz).sales+=+r.gross||0);db.income.filter(r=>!isPaid(r)&&+String(r.date).slice(0,4)<=y).forEach(r=>out.unpaid+=calc.dep(r));out.nopaid=db.income.filter(r=>r.status==='入金済'&&!r.paid).length;
   db.expense.filter(r=>inY(r.date)).forEach(r=>{const d=calc.ded(r);B(r.biz).exp+=d;out.cat[r.cat]=(out.cat[r.cat]||0)+d});
   return out}};
 
 const ACC=c=>CATS.includes(c)?c:'雑費',sum=a=>a.reduce((x,y)=>x+y[1],0),inY=(d,y)=>String(d||'').startsWith(String(y));
 const _d=(b,n,t,sy,sm)=>Math.floor(b/n*(t===sy?(13-sm)/12:1)),base=a=>(+a.cost||0)*(a.ratio===''||a.ratio==null?100:+a.ratio)/100;
-calc.assetDep=(a,y)=>{const b=base(a),n=+a.life||0;if(!n||!a.start)return 0;const sy=+a.start.slice(0,4),sm=+a.start.slice(5,7)||1;if(y<sy||(a.sold&&+a.sold.slice(0,4)<y))return 0;let acc=0;for(let t=sy;t<y;t++)acc+=_d(b,n,t,sy,sm);return Math.max(0,Math.min(_d(b,n,y,sy,sm),Math.floor(b)-1-acc))};
+calc.assetDep=(a,y)=>{const b=base(a),n=+a.life||0;if(!n||!a.start||(a.amethod&&!a.amethod.startsWith('定額法')))return 0;const sy=+a.start.slice(0,4),sm=+a.start.slice(5,7)||1;if(y<sy||(a.sold&&+a.sold.slice(0,4)<y))return 0;let acc=0;for(let t=sy;t<y;t++)acc+=_d(b,n,t,sy,sm);return Math.max(0,Math.min(_d(b,n,y,sy,sm),Math.floor(b)-1-acc))};
 calc.assetBV=(a,y)=>{if(!a.start||y<+a.start.slice(0,4))return 0;let v=base(a);for(let t=+a.start.slice(0,4);t<=y;t++)v-=calc.assetDep(a,t);return Math.round(v)};
-calc.journals=(db,y)=>{const J=[],p=(date,memo,dr,cr,src,biz)=>J.push({date,memo,dr:dr.filter(x=>x[1]),cr:cr.filter(x=>x[1]),src,biz});
- (db.income||[]).filter(r=>inY(r.date,y)).forEach(r=>{const g=+r.gross||0,f=+r.fee||0,w=+r.wh||0;p(r.date,'売上 '+(r.partner||''),[[r.status==='未入金'?'売掛金':'普通預金',g-f-w],['支払手数料',f],['事業主貸',w]],[['売上',g]],r.id,r.biz)});
- (db.expense||[]).filter(r=>inY(r.date,y)).forEach(r=>{const a=+r.amount||0,d=calc.ded(r),m=r.method||'';p(r.date,(r.payee||'')+' '+(r.desc||''),[[ACC(r.cat),d],['事業主貸',a-d]],[[m.includes('現金')?'現金':m.includes('カード')?'未払金':'普通預金',a]],r.id,r.biz)});
+calc.raw=(db,y)=>{const J=[],p=(date,memo,dr,cr,src,biz)=>J.push({date,memo,dr:dr.filter(x=>x[1]),cr:cr.filter(x=>x[1]),src,biz});
+ (db.income||[]).forEach(r=>{const g=+r.gross||0,f=+r.fee||0,w=+r.wh||0,n=g-f-w;
+  if(inY(r.date,y))p(r.date,'売上計上 '+(r.partner||''),[['売掛金',n],['支払手数料',f],['事業主貸',w]],[['売上',g]],r.id,r.biz);
+  if(isPaid(r)&&inY(r.paid,y))p(r.paid,'入金 '+(r.partner||''),[['普通預金',n]],[['売掛金',n]],r.id,r.biz)});
+ (db.expense||[]).forEach(r=>{const a=+r.amount||0,d=calc.ded(r),k=PAYK(r),memo=(r.payee||'')+' '+(r.desc||'');
+  if(inY(r.date,y)){if(k==='own')p(r.date,memo+'(立替)',[[ACC(r.cat),d]],[['事業主借',d]],r.id,r.biz);else p(r.date,memo,[[ACC(r.cat),d],['事業主貸',a-d]],[[k==='cash'?'現金':k==='ap'?'未払金':'普通預金',a]],r.id,r.biz)}
+  if(k==='ap'&&r.settle&&inY(r.settle,y))p(r.settle,'引落 '+(r.payee||''),[['未払金',a]],[['普通預金',a]],r.id,r.biz)});
  (db.owner||[]).filter(r=>inY(r.date,y)).forEach(r=>{const a=+r.amount||0,c=r.acct||'普通預金';if(r.kind==='事業主貸')p(r.date,'事業主貸',[['事業主貸',a]],[[c,a]],r.id);else p(r.date,'事業主借',[[c,a]],[['事業主借',a]],r.id)});
- (db.assets||[]).forEach(a=>{const b=Math.round(base(a));if(inY(a.buy,y))p(a.buy,'取得 '+a.aname,[['工具器具備品',b]],[['普通預金',b]],a.id);const d=calc.assetDep(a,y);if(d)p(y+'-12-31','減価償却 '+a.aname,[['減価償却費',d]],[['工具器具備品',d]],a.id)});
- const lia=['未払金','事業主借',...(db.accounts||[]).filter(a=>a.actype==='負債').map(a=>a.acname)];
- (db.opening||[]).filter(r=>+r.year===+y).forEach(r=>{const a=+r.amount||0;lia.includes(r.oacct)?p(y+'-01-01','期首残高 '+r.oacct,[['元入金',a]],[[r.oacct,a]],'op'):p(y+'-01-01','期首残高 '+r.oacct,[[r.oacct,a]],[['元入金',a]],'op')});
+ (db.assets||[]).forEach(a=>{const b=Math.round(base(a));if(inY(a.buy,y))p(a.buy,'取得 '+a.aname,[['工具器具備品',b]],[['普通預金',b]],a.id);const d=calc.assetDep(a,y);if(d)p(y+'-12-31','減価償却(仮) '+a.aname,[['減価償却費',d]],[['工具器具備品',d]],a.id)});
+ const lia=['未払金','事業主借',...(db.accounts||[]).filter(a=>a.actype==='負債').map(a=>a.acname)],y0=calc.y0(db);
+ (db.opening||[]).filter(r=>+r.year===+y&&+y===y0).forEach(r=>{const a=+r.amount||0;lia.includes(r.oacct)?p(y+'-01-01','期首残高 '+r.oacct,[['元入金',a]],[[r.oacct,a]],'op'):p(y+'-01-01','期首残高 '+r.oacct,[[r.oacct,a]],[['元入金',a]],'op')});
  (db.manual||[]).filter(r=>inY(r.date,y)).forEach(r=>p(r.date,'手動: '+(r.memo||''),[[r.mdr,+r.amount||0]],[[r.mcr,+r.amount||0]],r.id));
+ return J};
+calc.y0=db=>{const ys=[],add=d=>{const v=+String(d||'').slice(0,4);if(v>1900)ys.push(v)};(db.income||[]).forEach(r=>{add(r.date);if(isPaid(r))add(r.paid)});(db.expense||[]).forEach(r=>{add(r.date);add(r.settle)});(db.owner||[]).forEach(r=>add(r.date));(db.manual||[]).forEach(r=>add(r.date));(db.assets||[]).forEach(r=>add(r.buy));(db.opening||[]).forEach(r=>ys.push(+r.year));return ys.length?Math.min(...ys):0};
+calc.journals=(db,y)=>{const y0=calc.y0(db),J=calc.raw(db,y);
+ if(y0&&y>y0){const t={};for(let k=y0;k<y;k++)calc.raw(db,k).forEach(j=>{j.dr.forEach(([a,v])=>t[a]=(t[a]||0)+v);j.cr.forEach(([a,v])=>t[a]=(t[a]||0)-v)});
+  const isBS=a=>!(a==='売上'||a==='雑費'||CATS.includes(a)||custom('収益').includes(a)||['事業主貸','事業主借','元入金'].includes(a)),dr=[],cr=[];
+  Object.entries(t).forEach(([a,b])=>{if(!isBS(a)||!b)return;b>0?dr.push([a,b]):cr.push([a,-b])});const df=sum(dr)-sum(cr);df>0?cr.push(['元入金',df]):df<0&&dr.push(['元入金',-df]);
+  if(dr.length||cr.length)J.push({date:y+'-01-01',memo:'前年繰越',dr,cr,src:'carry'})}
  return J.sort((x,z)=>x.date<z.date?-1:x.date>z.date?1:0)};
 calc.tb=J=>{const t={};J.forEach(j=>{j.dr.forEach(([a,v])=>(t[a]=t[a]||[0,0])[0]+=v);j.cr.forEach(([a,v])=>(t[a]=t[a]||[0,0])[1]+=v)});return t};
 calc.invest=(db,y)=>{const o={};(db.invest||[]).filter(r=>inY(r.date,y)).forEach(r=>o[r.acct]=(o[r.acct]||0)+(+r.realized||0));return o};
@@ -102,7 +115,7 @@ function ledger(){const J=calc.journals(S.db,S.year),bad=J.filter(j=>sum(j.dr)!=
  <div class="card"><b>総勘定元帳・出納帳</b><label>科目(現金=現金出納帳、普通預金=預金出納帳、売掛金・未払金=残高管理)<select onchange="S.acct=this.value;R()">${names.map(n=>`<option ${n===ac?'selected':''}>${esc(n)}</option>`).join('')}</select></label>
  <div class="tw"><table><tr><th>日付</th><th>摘要</th><th class="n">借方</th><th class="n">貸方</th><th class="n">残高</th></tr>${L2.map(r=>`<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td><td class="n">${yen(r[2])}</td><td class="n">${yen(r[3])}</td><td class="n">${yen(r[4])}</td></tr>`).join('')||'<tr><td colspan=5>該当なし</td></tr>'}</table></div><small>期首残高を登録した場合は元入金とともに反映されます(登録がない場合は年初0円からの累計)。</small></div>
  <div class="card"><b>事業別補助元帳</b><label>事業<select onchange="S.sbiz=this.value;R()"><option value="">選択…</option>${S.db.businesses.map(b=>`<option value="${b.id}" ${b.id===S.sbiz?'selected':''}>${esc(b.name)}</option>`).join('')}</select></label><div class="tw"><table><tr><th>日付</th><th>借方</th><th>貸方</th><th>摘要</th></tr>${J.filter(j=>j.biz&&j.biz===S.sbiz).map(j=>`<tr><td>${esc(j.date)}</td><td>${esc(fmt(j.dr))}</td><td>${esc(fmt(j.cr))}</td><td>${esc(j.memo)}</td></tr>`).join('')||'<tr><td colspan=4>事業を選択してください</td></tr>'}</table></div></div>`}
-const CHK=['青色申告承認申請書の提出状況を確認した','事業ごとの所得区分(事業所得/雑所得等)を確認した','全ての収入に証憑を紐付け・保管した','未入金・未払金を確認した','按分経費の根拠を記録した','固定資産・減価償却の内容を確認した','源泉徴収票(給与)を確認した','投資取引の年間取引報告書・申告要否を確認した','所得控除等(社会保険料・生命保険料等)を確認した','国税庁の最新様式・手引きを確認した','青色申告特別控除の要件(65/55/10万円)を確認した'];
+const CHK=['青色申告承認申請書の提出状況を確認した','事業ごとの所得区分(事業所得/雑所得等)を確認した','全ての収入に証憑を紐付け・保管した','未入金・未払金を確認した','按分経費の根拠を記録した','固定資産・減価償却の内容を確認した','源泉徴収票(給与)を確認した','投資取引の年間取引報告書・申告要否を確認した','所得控除等(社会保険料・生命保険料等)を確認した','国税庁の最新様式・手引きを確認した','青色申告特別控除の要件(65/55/10万円)を確認した','本業の源泉徴収票(支払金額・源泉徴収税額・社会保険料等)を用意した','住民税の徴収方法(自分で納付)の選択を確認した'];
 async function tog(i){const k=S.year+'_'+i;S.db.meta.chk=S.db.meta.chk||{};S.db.meta.chk[k]=!S.db.meta.chk[k];await save();R()}
 async function addRule(){const g=i=>document.getElementById(i).value;if(!g('ru_url')||!g('ru_year'))return alert('URLと対象年は必須です。');S.db.meta.rules=(S.db.meta.rules||[]).concat([{url:g('ru_url'),year:g('ru_year'),date:g('ru_date'),memo:g('ru_memo')}]);await save();R()}
 async function delRule(i){S.db.meta.rules.splice(i,1);await save();R()}
@@ -111,7 +124,8 @@ function report(){const J=calc.journals(S.db,S.year),t=calc.tb(J),bal=a=>t[a]?t[
  Object.entries(s.biz).forEach(([id,v])=>{const b=S.db.businesses.find(b=>b.id===id),k=b&&b.tax&&b.tax!=='未選択'?b.tax:'未選択(要確認)',o=by[k]=by[k]||{a:0,e:0};o.a+=v.sales;o.e+=v.exp});
  const wh=S.db.income.filter(r=>inY(r.date,y)).reduce((x,r)=>x+(+r.wh||0),0),swh=S.db.salary.filter(r=>+r.year===y).reduce((x,r)=>x+(+r.wh||0),0),ck=S.db.meta.chk||{};const A=BS.concat(custom('資産')),Lb=BL.concat(custom('負債')),net=sales-tot,aT=A.reduce((x,a)=>x+bal(a),0),rT=Lb.reduce((x,a)=>x-bal(a),0)-bal('元入金')-bal('事業主貸')+net;
  const tr=(a,b)=>`<tr><td>${esc(a)}</td><td class="n">${yen(b)}</td></tr>`;
- return `<div class="card"><b>${y}年 申告準備資料</b> <small>(公式様式ではありません。国税庁の確定申告書等作成コーナー入力時の参考資料です)</small><br><button class="b np" onclick="window.print()">印刷 / PDF保存</button></div>
+ return `<div class="card"><b>${y}年 申告準備資料</b> <small>(公式様式ではありません。国税庁の確定申告書等作成コーナー入力時の参考資料です)</small><br><label class="np">氏名(印刷用)<input value="${esc(S.db.meta.name||'')}" onchange="S.db.meta.name=this.value;save()"></label><button class="b np" onclick="window.print()">印刷 / PDF保存</button><div class="warn">この資料は<b>税務署へ提出する書類ではありません</b>。提出には、国税庁の公式様式(青色申告決算書・収支内訳書)または確定申告書等作成コーナーで作成した書類を使用してください。本資料はその入力・作成のための参考資料です。</div><div class="pr"><h2>${y}年分 申告準備資料(参考)</h2>氏名: ${esc(S.db.meta.name||'')} / 作成日: ${new Date().toLocaleDateString('ja-JP')}</div></div>
+ ${filingCard()}
  <div class="card"><b>損益計算書(基礎データ)</b><div class="tw"><table><tr><th>項目</th><th class="n">金額</th></tr>${tr('売上',sales)}${ex.map(a=>tr(a,bal(a))).join('')}${tr('差引(青色申告特別控除前)',sales-tot)}</table></div><small>事業主貸・源泉徴収税額は経費に含めていません。</small></div>
  <div class="card"><b>貸借対照表(基礎データ)</b><div class="tw"><table><tr><th>科目</th><th class="n">残高</th></tr>${A.map(a=>tr('資産: '+a,bal(a))).join('')}${tr('資産合計',aT)}${Lb.map(a=>tr('負債等: '+a,-bal(a))).join('')}${tr('元入金',-bal('元入金'))}${tr('事業主貸(控除)',-bal('事業主貸'))}${tr('当期純利益',net)}${tr('負債・資本合計',rT)}${tr('差額(0なら貸借一致)',aT-rT)}</table></div><div class="warn">期首残高を登録していない場合、元入金は0として計算されます。公式様式(青色申告決算書)ではないため、期首残高・科目の正確さは必ずご自身で確認してください。</div></div>
  <div class="card"><b>所得区分別集計(事業のみ)</b><div class="tw"><table><tr><th>区分</th><th class="n">売上</th><th class="n">経費</th><th class="n">差引</th></tr>${Object.entries(by).map(([k,v])=>`<tr><td>${esc(k)}</td><td class="n">${yen(v.a)}</td><td class="n">${yen(v.e)}</td><td class="n">${yen(v.a-v.e)}</td></tr>`).join('')||'<tr><td colspan=4>データなし</td></tr>'}</table></div><table style="margin-top:8px"><tr><th>別管理</th><th class="n">金額</th></tr>${tr('給与収入(給与所得・別集計)',s.salary)}${Object.entries(inv).map(([k,v])=>tr('投資 実現損益: '+k,v)).join('')}${tr('源泉徴収税額 事業収入分',wh)}${tr('源泉徴収税額 給与分',swh)}</table></div>
@@ -124,7 +138,7 @@ function parseCSV(t){const R=[];let r=[],c='',q=false;for(let i=0;i<t.length;i++
 const nd=v=>{const m=String(v).match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/);return m?`${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`:''},na=v=>Math.abs(parseFloat(String(v).replace(/[^\d.\-]/g,''))||0);
 function impLoad(f){if(!f)return;const r=new FileReader(),e=document.getElementById('enc').value;r.onload=()=>{const R2=parseCSV(r.result);if(R2.length<2)return alert('データ行がありません。');S.imp={h:R2[0],rows:R2.slice(1),fname:f.name,map:{t:'expense',b:'',d:0,a:1,p:2}};R()};r.readAsText(f,e)}
 function impRows(){const m=S.imp,mp=m.map,inc=mp.t==='income',ex=inc?S.db.income:S.db.expense,seen=[];return m.rows.map(r=>{const o={date:nd(r[mp.d]),amt:na(r[mp.a]),p:r[mp.p]||''},x=inc?{date:o.date,biz:mp.b,gross:o.amt,partner:o.p}:{date:o.date,biz:mp.b,amount:o.amt,payee:o.p};o.dup=calc.isDup(ex.concat(seen),x);o.bad=!o.date||!o.amt;o.x=x;seen.push(x);return o})}
-async function impGo(withDup){const m=S.imp,mp=m.map;if(!mp.b)return alert('事業を選択してください。');let n=0;impRows().forEach(o=>{if(o.bad||(o.dup&&!withDup))return;const base2={id:crypto.randomUUID(),src:m.fname,importedAt:new Date().toISOString()};S.db[mp.t].push(mp.t==='income'?{...base2,...o.x,fee:0,wh:0,status:'入金済',desc:''}:{...base2,...o.x,cat:'その他',ratio:100,desc:'',method:''});n++});await save();S.imp=null;alert(n+'件を取り込みました。内容を確認し、経費カテゴリ等を設定してください。');R()}
+async function impGo(withDup){const m=S.imp,mp=m.map;if(!mp.b)return alert('事業を選択してください。');let n=0;impRows().forEach(o=>{if(o.bad||(o.dup&&!withDup))return;const base2={id:crypto.randomUUID(),src:m.fname,importedAt:new Date().toISOString()};S.db[mp.t].push(mp.t==='income'?{...base2,...o.x,fee:0,wh:0,status:'入金済',paid:o.x.date,desc:''}:{...base2,...o.x,cat:'その他',ratio:100,desc:'',pay:PAY[0]});n++});await save();S.imp=null;alert(n+'件を取り込みました。内容を確認し、経費カテゴリ等を設定してください。');R()}
 function imp(){const m=S.imp;if(!m)return `<div class="card"><b>CSV取込</b><div class="warn">銀行・カード・収益レポート等のCSVを取り込みます。取込前に列の対応付けとプレビューで確認できます。</div><label>文字コード<select id="enc"><option>UTF-8</option><option>Shift_JIS</option></select></label><label>CSVファイル(1行目は見出し)<input type="file" accept=".csv,.txt" onchange="impLoad(this.files[0])"></label></div>`;
  const o=v=>m.h.map((x,i)=>`<option value="${i}" ${v===i?'selected':''}>${esc(x)}</option>`).join(''),mp=m.map,rows=impRows();
  return `<div class="card"><b>列の対応付け: ${esc(m.fname)}</b><div class="g"><label>取込先<select onchange="S.imp.map.t=this.value;R()"><option value="expense" ${mp.t==='expense'?'selected':''}>経費</option><option value="income" ${mp.t==='income'?'selected':''}>収入</option></select></label>
@@ -136,68 +150,93 @@ function imp(){const m=S.imp;if(!m)return `<div class="card"><b>CSV取込</b><di
 const BASE=CATS.slice(),custom=t=>((S.db&&S.db.accounts)||[]).filter(a=>a.actype===t).map(a=>a.acname);
 function syncCats(){CATS.length=0;CATS.push(...BASE,...custom('費用'))}
 const allAcc=()=>[...new Set(['現金','普通預金','売掛金','未払金','工具器具備品','事業主貸','事業主借','元入金','売上',...CATS,...custom('資産'),...custom('負債'),...custom('収益')])];
-const HINT={gross:'手数料・源泉を引く前の売上総額(税込)',fee:'プラットフォーム等が差し引いた額',wh:'報酬から天引きされた所得税。経費ではありません',paid:'実際に入金された日(未入金なら空欄)',ratio:'事業で使った割合。例: 通信費の60%なら 60',basis:'按分の根拠(例: 使用時間の割合)を残しておくと安心です',tax:'名称でなく実態で判断。迷ったら「その他・要確認」',blue:'青色申告承認申請書の提出状況',method:'「現金」「カード」を含めると仕訳が自動で変わります',realized:'取引報告書などを見て手入力',life:'法定耐用年数を確認して入力',cost:'購入にかかった総額',ye:'年末調整が済んでいるか',acct:'お金が動く口座',actype:'費用=経費科目として追加 / 収益=売上の仲間 / 資産・負債=貸借対照表用',oacct:'資産(現金・預金など)または負債(未払金など)を選択',mdr:'お金の使い道・増えた先(借方)',mcr:'お金の出どころ(貸方)'};
-const HELP={dash:'<b>ダッシュボード</b>: 今年のお金の状況を一目で見る画面です。給与・事業売上・経費・投資は混ぜずに別々に表示します。',businesses:'<b>事業・副業</b>: 収入の「入れ物」です。YouTube、開発、物販など自由に追加できます。所得区分は名前では決まりません。迷ったら「その他・要確認」のままにしてください。',income:'<b>収入</b>: 売上を記録します。売上・手数料・源泉徴収税額・入金額は別々に入れると、入金額が自動計算されます。入金日が未定なら状況を「未入金」に。',expense:'<b>支出・経費</b>: 仕事に使ったお金を記録します。自宅の通信費など私用と兼ねるものは「事業使用割合」を入れ、根拠をメモします。',salary:'<b>給与</b>: 本業の給与を源泉徴収票を見て入力します。事業売上には含まれず、別集計になります。',owner:'<b>事業主貸・事業主借</b>: 事業のお金を私用に引き出したら「事業主貸」、私のお金を事業に入れたら「事業主借」。収入・経費ではありません。',assets:'<b>固定資産</b>: パソコンなど長く使う高額な物を登録します。減価償却は簡易な仮計算です。特例の適用は必ずご自身で確認してください。',invest:'<b>投資取引</b>: 株・FXなどは事業売上とは別に管理します。NISA口座は課税口座と分けて表示されます。',ledger:'<b>仕訳・帳簿</b>: 入力したデータから複式簿記の仕訳が自動で作られます。仕訳帳・試算表・元帳・事業別補助元帳を見られます。',report:'<b>申告準備</b>: 損益・貸借の基礎データ、所得区分別の集計、チェックリストをまとめます。公式様式ではなく、申告書作成時の参考資料です。',accounts:'<b>勘定科目</b>: 経費科目などを自分で追加できます。追加した「費用」は経費カテゴリの選択肢に出ます。',opening:'<b>期首残高</b>: 年初の現金・預金・未払金などの残高を入れると、貸借対照表の元入金に反映されます。',manual:'<b>手動仕訳</b>: 自動仕訳で表せない取引を、借方・貸方を選んで直接入力します。',import:'<b>CSV取込</b>: 銀行やカードのCSVを取り込みます。列の対応付け→プレビュー→取込の順に進みます。',data:'<b>データ・テスト</b>: CSV出力、バックアップ(必ず定期的に!)、計算テストができます。'};
+const HINT={gross:'手数料・源泉を引く前の売上総額(税込)',fee:'プラットフォーム等が差し引いた額',wh:'報酬から天引きされた所得税。経費ではありません',paid:'実際に入金された日。空欄の間は売掛金(未入金)として扱います',ratio:'事業で使った割合。例: 通信費の60%なら 60',basis:'按分の根拠(例: 使用時間の割合)を残しておくと安心です',tax:'名称でなく実態で判断。迷ったら「その他・要確認」',blue:'青色申告承認申請書の提出状況',pay:'カード払いは利用日に経費と未払金を計上し、引落日を入れると未払金を消し込みます(引落しを別の経費として重複登録しないでください)',settle:'カード・未払金の場合のみ。実際に引落・支払った日',realized:'取引報告書などを見て手入力',life:'法定耐用年数を確認して入力',cost:'購入にかかった総額',ye:'年末調整が済んでいるか',acct:'お金が動く口座',actype:'費用=経費科目として追加 / 収益=売上の仲間 / 資産・負債=貸借対照表用',oacct:'資産(現金・預金など)または負債(未払金など)を選択',mdr:'お金の使い道・増えた先(借方)',mcr:'お金の出どころ(貸方)'};
+const HELP={dash:'<b>ダッシュボード</b>: 今年のお金の状況を一目で見る画面です。給与・事業売上・経費・投資は混ぜずに別々に表示します。',businesses:'<b>事業・副業</b>: 収入の「入れ物」です。YouTube、開発、物販など自由に追加できます。所得区分は名前では決まりません。迷ったら「その他・要確認」のままにしてください。',income:'<b>収入</b>: 売上を記録します。売上・手数料・源泉徴収税額・入金額は別々に入れると、入金額が自動計算されます。売上計上日と入金日は別です。入金日を入れると入金仕訳(売掛金の消込)が作られ、空欄の間は売掛金として残ります。',expense:'<b>支出・経費</b>: 仕事に使ったお金を記録します。自宅の通信費など私用と兼ねるものは「事業使用割合」を入れ、根拠をメモします。',salary:'<b>給与</b>: 本業の給与を毎月の給与明細を見て月別に入力します(賞与は区分「賞与」)。社会保険料・源泉所得税は会社が天引き済みの金額です。事業売上には含まれず、別枠で集計されます。',owner:'<b>事業主貸・事業主借</b>: 事業のお金を私用に引き出したら「事業主貸」、私のお金を事業に入れたら「事業主借」。収入・経費ではありません。',assets:'<b>固定資産</b>: パソコンなど長く使う高額な物を登録します。減価償却は簡易な仮計算です。特例の適用は必ずご自身で確認してください。',invest:'<b>投資取引</b>: 株・FXなどは事業売上とは別に管理します。NISA口座は課税口座と分けて表示されます。',ledger:'<b>仕訳・帳簿</b>: 入力したデータから複式簿記の仕訳が自動で作られます。仕訳帳・試算表・元帳・事業別補助元帳を見られます。',report:'<b>申告準備</b>: 損益・貸借の基礎データ、所得区分別の集計、チェックリストをまとめます。公式様式ではなく、申告書作成時の参考資料です。',accounts:'<b>勘定科目</b>: 経費科目などを自分で追加できます。追加した「費用」は経費カテゴリの選択肢に出ます。',opening:'<b>期首残高</b>: 最初の年の年初残高だけ入力します。2年目以降は前年末の残高(売掛金・未払金・現金・預金・固定資産など)が自動で繰り越されます。',manual:'<b>手動仕訳</b>: 自動仕訳で表せない取引を、借方・貸方を選んで直接入力します。',import:'<b>CSV取込</b>: 銀行やカードのCSVを取り込みます。列の対応付け→プレビュー→取込の順に進みます。',data:'<b>データ・テスト</b>: CSV出力、バックアップ(必ず定期的に!)、計算テストができます。'};
 function toast(m){const e=document.createElement('div');e.id='toast';e.textContent=m;document.body.appendChild(e);setTimeout(()=>e.remove(),1800)}
 async function addSample(){const y=S.year;S.db.businesses.push({id:'smp1',name:'【サンプル】動画投稿',tax:'未選択',blue:'未確認',active:'有効',sample:true});
  S.db.income.push({id:'smpi1',date:y+'-04-10',biz:'smp1',partner:'サンプル広告',gross:10000,fee:1000,wh:0,status:'入金済',sample:true},{id:'smpi2',date:y+'-05-10',biz:'smp1',partner:'サンプル案件',gross:30000,fee:0,wh:3063,status:'未入金',sample:true});
  S.db.expense.push({id:'smpe1',date:y+'-04-15',payee:'サンプル通信',desc:'ネット代',amount:10000,biz:'smp1',cat:'通信費',ratio:60,basis:'使用時間の割合',method:'普通預金',sample:true});await save();toast('サンプルを追加しました');R()}
 async function delSample(){['businesses','income','expense'].forEach(k=>S.db[k]=S.db[k].filter(r=>!r.sample));await save();toast('サンプルを削除しました');R()}
-function guide(){const d=S.db,st=[['businesses','事業・副業を登録する','収入の入れ物を作ります。名前は自由。所得区分は迷ったら「要確認」のままでOK。',d.businesses.length],['income','収入を入力する','売上・手数料・源泉徴収税額を分けて入れると入金額が自動で出ます。',d.income.length],['expense','経費を入力する','私用と兼ねる支出は事業使用割合(按分)と根拠を入れましょう。',d.expense.length],['salary','本業の給与を入力する','源泉徴収票を見て入力。事業売上とは別に集計されます。',d.salary.length],['ledger','仕訳・帳簿を確認する','入力から自動で仕訳が作られます。貸借が一致しているか確認。',calc.journals(d,S.year).length],['report','申告準備を確認する','損益・貸借の基礎データとチェックリスト。印刷でPDF保存できます。',Object.keys(d.meta.chk||{}).length]];
+function guide(){const d=S.db,st=[['businesses','事業・副業を登録する','収入の入れ物を作ります。名前は自由。所得区分は迷ったら「要確認」のままでOK。',d.businesses.length],['income','収入を入力する','売上・手数料・源泉徴収税額を分けて入れると入金額が自動で出ます。',d.income.length],['expense','経費を入力する','私用と兼ねる支出は事業使用割合(按分)と根拠を入れましょう。',d.expense.length],['salary','本業の給与を入力する','毎月の給与明細を月別に入力(社会保険料・源泉所得税も)。事業売上とは別枠で集計されます。',d.salary.length],['ledger','仕訳・帳簿を確認する','入力から自動で仕訳が作られます。貸借が一致しているか確認。',calc.journals(d,S.year).length],['report','申告準備を確認する','損益・貸借の基礎データとチェックリスト。印刷でPDF保存できます。',Object.keys(d.meta.chk||{}).length]];
  return `<div class="card"><b>はじめての方へ — 6ステップで準備完了</b><p style="color:var(--mut);margin:4px 0">上から順に進めるだけです。完了したステップには ✔ が付きます。データはこの端末のブラウザ内だけに保存されます。</p>${st.map((x,i)=>`<div class="step ${x[3]?'ok':''}"><i>${x[3]?'✔':i+1}</i><div><b>${x[1]}</b><br><small style="color:var(--mut)">${x[2]}</small></div><button class="b s" onclick="S.tab='${x[0]}';R();scrollTo(0,0)">開く</button></div>`).join('')}</div>
  <div class="card"><b>まず試してみたい方へ</b><br><small style="color:var(--mut)">サンプルデータは【サンプル】と表示され、いつでもまとめて削除できます。</small><br><button class="b" onclick="addSample()">サンプルを追加</button><button class="b s" onclick="delSample()">サンプルを削除</button></div>
  <div class="card"><b>用語ミニ辞典</b><details><summary>按分(あんぶん)</summary>私用と事業の両方に使う費用を、事業で使った割合だけ経費にすること。</details><details><summary>源泉徴収税額</summary>報酬や給与から先に天引きされた所得税。経費ではなく、申告で精算されます。</details><details><summary>売掛金・未払金</summary>売上が未入金の分=売掛金、カード払いなどで未払いの分=未払金。</details><details><summary>事業主貸・事業主借</summary>事業と家計の間のお金の移動。貸=事業から私へ、借=私から事業へ。</details><details><summary>減価償却</summary>高額な物の購入額を、使える年数に分けて経費にすること。</details><details><summary>元入金</summary>年初の事業の元手。期首残高から自動で計算されます。</details></div>
+ <div class="card"><b>会社員で副業をしている方へ</b><br><small style="color:var(--mut)">本業の給与は会社が源泉徴収・社会保険料の天引きをしています。副業の所得が一定額(20万円)を超える場合などは、勤務先ではなく<b>税務署へ自分で確定申告</b>します。「申告準備」タブに、副業の収支と本業の給与・社会保険料・源泉所得税から申告要否の目安を表示します(最終判断は国税庁の案内・税務署でご確認ください)。</small></div>
  <div class="warn">お金のデータを扱います。「データ・テスト」から定期的にバックアップを保存してください。税務判断はご自身で、必要に応じて税務署・税理士にご確認ください。</div>`}
+
+const isPaid=r=>!!r.paid&&r.status!=='未入金',sum2=(a,f)=>a.reduce((x,r)=>x+(+r[f]||0),0);
+const PAYK=r=>{const p=r.pay||'',m=r.method||'';if(p.startsWith('現金')||(!p&&m.includes('現金')))return'cash';if(p.startsWith('クレジット')||p.startsWith('未払')||(!p&&m.includes('カード')))return'ap';if(p.startsWith('個人'))return'own';return'bank'};
+const YK={income:r=>inY(r.date,S.year)||inY(r.paid,S.year),expense:r=>inY(r.date,S.year)||inY(r.settle,S.year),salary:r=>+r.year===S.year,owner:r=>inY(r.date,S.year),invest:r=>inY(r.date,S.year),manual:r=>inY(r.date,S.year),opening:r=>+r.year===S.year};
+function sortBy(k,c){S.sort=S.sort&&S.sort.k===k&&S.sort.c===c?{k,c,d:-S.sort.d}:{k,c,d:1};R()}
+async function mv(k,id,d){const a=S.db[k],i=a.findIndex(r=>r.id===id),j=i+d;if(j<0||j>=a.length)return;[a[i],a[j]]=[a[j],a[i]];S.sort=null;await save();R()}
+calc.side=(db,y)=>Object.values(calc.summary(db,y).biz).reduce((x,v)=>x+v.sales-v.exp,0);
+function salMonthly(){const rs=S.db.salary.filter(r=>+r.year===S.year),row=x=>{const g=sum2(x,'gross'),so=sum2(x,'social'),w=sum2(x,'wh');return [g,so,w,g-so-w]},td=(l,v)=>`<tr><td>${l}</td>${v.map(n=>`<td class="n">${yen(n)}</td>`).join('')}</tr>`;
+ const ms=Array.from({length:12},(_,i)=>td((i+1)+'月',row(rs.filter(r=>+r.month===i+1)))).join(''),oth=rs.filter(r=>!(+r.month>=1));
+ return `<div class="card"><b>本業の給与 月別(${S.year}年・副業とは別枠)</b><div class="tw"><table><tr><th>月</th><th class="n">支給額</th><th class="n">社会保険料</th><th class="n">源泉所得税</th><th class="n">差引(概算)</th></tr>${ms}${oth.length?td('月未設定',row(oth)):''}${td('<b>年間合計</b>',row(rs))}</table></div><small>社会保険料・源泉所得税は会社が天引き済みの金額です。差引は住民税等を含まない概算。申告では源泉徴収票の「支払金額」「源泉徴収税額」「社会保険料等の金額」を使います。</small></div>`}
+function filingCard(){const y=S.year,side=calc.side(S.db,y),sal=S.db.salary.filter(r=>+r.year===y),over=side>200000;
+ return `<div class="card"><b>副業の申告要否の目安(会社員・税務署へ自己申告)</b><div class="tw"><table><tr><th>項目</th><th class="n">金額</th></tr><tr><td>副業の収支(売上−経費・税引前の単純計算)</td><td class="n">${yen(side)}</td></tr><tr><td>本業 給与支給額(月別合計)</td><td class="n">${yen(sum2(sal,'gross'))}</td></tr><tr><td>本業 社会保険料等(天引き済み)</td><td class="n">${yen(sum2(sal,'social'))}</td></tr><tr><td>本業 源泉所得税(天引き済み)</td><td class="n">${yen(sum2(sal,'wh'))}</td></tr></table></div>
+ <div class="warn" style="${over?'':'border-color:var(--up);color:var(--up)'}">${over?'副業の所得が20万円を超えているため、<b>所得税の確定申告が必要になる可能性が高い</b>です。':'副業の所得が20万円以下のため、所得税の確定申告は<b>原則不要</b>となる場合があります。'}</div>
+ <small>国税庁の案内では、給与を1か所から受け、給与が2,000万円以下で源泉徴収・年末調整が行われている会社員は、給与・退職所得以外の所得金額の合計が20万円以下なら原則申告不要です。ただし、医療費控除などで還付申告をする場合は副業の所得も併せて申告します。株式・不動産・一時所得など他の所得は合算して判定され、青色申告特別控除や減価償却は上の目安に反映していません。20万円以下でも<b>住民税の申告</b>が必要な場合があるため、お住まいの市区町村に確認してください。<br>出典: 国税庁 タックスアンサー No.1900 / 同Q&A(確認日 2026-10-15・令和7年4月1日現在法令等。対象年の最新を必ず確認)<br>https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/1900.htm<br>副業は勤務先へ申告せず、税務署へ自己申告する前提です。確定申告書の第二表に、住民税の徴収方法(自分で納付)を選ぶ欄があります。運用は自治体により異なり、勤務先に知られないことの保証はありません。</small></div>`}
 // ---- 保存 (IndexedDB) ----
 let idb;const open=()=>new Promise((res,rej)=>{const q=indexedDB.open('fukugyo-kaikei',1);q.onupgradeneeded=()=>q.result.createObjectStore('kv');q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)});
 const load=async()=>{idb=await open();return new Promise(r=>{const q=idb.transaction('kv').objectStore('kv').get('db');q.onsuccess=()=>r(q.result);q.onerror=()=>r(null)})};
-const save=()=>new Promise((res,rej)=>{S.db.meta.saved=new Date().toISOString();const t=idb.transaction('kv','readwrite');t.objectStore('kv').put(S.db,'db');t.oncomplete=()=>{const e=document.getElementById('st');if(e)e.textContent='✔ 保存済 '+new Date().toLocaleTimeString('ja-JP');res()};t.onerror=()=>rej(t.error)});
+const save=()=>new Promise(res=>{const bad=m=>{const e=document.getElementById('st');if(e){e.textContent='⚠ 保存失敗';e.style.color='#f87171';e.style.borderColor='#f87171'}alert('保存に失敗しました: '+m);res(false)};try{S.db.meta.saved=new Date().toISOString();S.db.meta.version=VER;const t=idb.transaction('kv','readwrite');t.objectStore('kv').put(S.db,'db');t.oncomplete=()=>{const e=document.getElementById('st');if(e){e.textContent='✔ 保存済 '+new Date().toLocaleTimeString('ja-JP');e.style.color='';e.style.borderColor=''}res(true)};t.onerror=t.onabort=()=>bad(t.error&&t.error.message||'不明なエラー')}catch(x){bad(x.message)}});
 // ---- 画面 ----
 const bizName=id=>(S.db.businesses.find(b=>b.id===id)||{}).name||'(未設定)';
-const val=(e,r,k)=>k==='adep'?calc.assetDep(r,S.year):k==='abv'?calc.assetBV(r,S.year):k==='dep'?calc.dep(r):k==='ded'?calc.ded(r):k==='biz'?bizName(r.biz):r[k];
+const val=(e,r,k)=>k==='abv0'?calc.assetBV(r,S.year-1):k==='adep'?calc.assetDep(r,S.year):k==='abv'?calc.assetBV(r,S.year):k==='dep'?calc.dep(r):k==='ded'?calc.ded(r):k==='biz'?bizName(r.biz):r[k];
 function R(){
- syncCats();document.getElementById('nav').innerHTML='<div class="logo">◆ FUKUGYO LEDGER</div>'+Object.entries(TABS).map(([k,v])=>`<button class="${S.tab===k?'on':''}" onclick="S.tab='${k}';S.edit=null;R();scrollTo(0,0)">${ICON[k]||'•'} ${v}</button>`).join('');
- const y=document.getElementById('yr');const cy=new Date().getFullYear();y.innerHTML=[cy-3,cy-2,cy-1,cy,cy+1].map(v=>`<option ${v===S.year?'selected':''}>${v}</option>`).join('');
+ syncCats();document.getElementById('nav').innerHTML='<div class="logo">◆ TAX PILOT</div>'+Object.entries(TABS).map(([k,v])=>`<button class="${S.tab===k?'on':''}" onclick="S.tab='${k}';S.edit=null;R();scrollTo(0,0)">${ICON[k]||'•'} ${v}</button>`).join('');
+ const y=document.getElementById('yr');const cy=new Date().getFullYear(),yl=[];for(let v=Math.min(cy-5,S.year);v<=Math.max(cy+1,S.year);v++)yl.push(v);y.innerHTML=yl.map(v=>`<option ${v===S.year?'selected':''}>${v}</option>`).join('');
  const a=document.getElementById('app');
  const V={guide,dash,data,notes,ledger,report,import:imp},smp=['businesses','income','expense'].some(k=>S.db[k].some(r=>r.sample));a.innerHTML=(smp?'<div class="warn">サンプルデータが含まれています(「はじめに」から削除できます)</div>':'')+(HELP[S.tab]?`<div class="help">${HELP[S.tab]}</div>`:'')+(V[S.tab]||(()=>crud(S.tab)))();
  a.querySelectorAll('table').forEach(t=>{const h=[...t.rows[0].cells].map(c=>c.textContent);[...t.rows].forEach((r,i)=>{if(r.cells[0].tagName==='TH')r.className='h';else[...r.cells].forEach((c,j)=>c.dataset.l=h[j]||'')})});
 }
-function mchart(y){const m=Array.from({length:12},()=>[0,0]),mi=d=>(+String(d).slice(5,7)||1)-1;S.db.income.filter(r=>inY(r.date,y)).forEach(r=>m[mi(r.date)][0]+=+r.gross||0);S.db.expense.filter(r=>inY(r.date,y)).forEach(r=>m[mi(r.date)][1]+=calc.ded(r));const mx=Math.max(1,...m.flat());
- return `<svg viewBox="0 0 340 140" width="100%" role="img" aria-label="月別売上と経費"><line x1="4" x2="336" y1="115" y2="115" stroke="#22324f"/>${m.map((v,i)=>{const x=8+i*27,a=v[0]/mx*100,b=v[1]/mx*100;return `<rect x="${x}" y="${115-a}" width="10" height="${a}" fill="#34d399" rx="2"/><rect x="${x+11}" y="${115-b}" width="10" height="${b}" fill="#f87171" rx="2"/><text x="${x+10}" y="130" font-size="9" fill="#8ea0c0" text-anchor="middle">${i+1}月</text>`}).join('')}</svg>`}
-function dash(){const s=calc.summary(S.db,S.year),ids=Object.keys(s.biz),T=ids.reduce((a,i)=>[a[0]+s.biz[i].sales,a[1]+s.biz[i].exp],[0,0]),net=T[0]-T[1],
+function mchart(y){const m=Array.from({length:12},()=>[0,0,0]),mi=d=>(+String(d).slice(5,7)||1)-1;S.db.income.filter(r=>inY(r.date,y)).forEach(r=>m[mi(r.date)][0]+=+r.gross||0);S.db.expense.filter(r=>inY(r.date,y)).forEach(r=>m[mi(r.date)][1]+=calc.ded(r));S.db.salary.filter(r=>+r.year===y&&+r.month>=1).forEach(r=>m[+r.month-1][2]+=+r.gross||0);const mx=Math.max(1,...m.flat()),h=n=>n/mx*100;
+ return `<svg viewBox="0 0 340 140" width="100%" role="img" aria-label="月別グラフ"><line x1="4" x2="336" y1="115" y2="115" stroke="#22324f"/>${m.map((v,i)=>{const x=6+i*27;return `<rect x="${x}" y="${115-h(v[2])}" width="7" height="${h(v[2])}" fill="#d4af37" rx="2"/><rect x="${x+8}" y="${115-h(v[0])}" width="7" height="${h(v[0])}" fill="#34d399" rx="2"/><rect x="${x+16}" y="${115-h(v[1])}" width="7" height="${h(v[1])}" fill="#f87171" rx="2"/><text x="${x+11}" y="130" font-size="9" fill="#8ea0c0" text-anchor="middle">${i+1}月</text>`}).join('')}</svg><small>金=本業の給与(別枠) / 緑=副業の売上 / 赤=副業の経費</small>`}
+function dash(){const s=calc.summary(S.db,S.year),ids=Object.keys(s.biz),T=ids.reduce((a,i)=>[a[0]+s.biz[i].sales,a[1]+s.biz[i].exp],[0,0]),net=T[0]-T[1],apb=(t=>t['未払金']?t['未払金'][1]-t['未払金'][0]:0)(calc.tb(calc.journals(S.db,S.year))),
  pend=S.db.businesses.filter(b=>!b.tax||b.tax==='未選択'||b.tax==='その他・要確認').length;
- return `<div class="kpis"><div class="kpi"><span>本業の給与収入</span><b>${yen(s.salary)}</b></div><div class="kpi"><span>事業 売上</span><b class="up">${yen(T[0])}</b></div><div class="kpi"><span>事業 経費(算入額)</span><b class="dn">${yen(T[1])}</b></div><div class="kpi"><span>事業 収支(税引前)</span><b class="${net>=0?'up':'dn'}">${yen(net)}</b></div><div class="kpi"><span>未入金(手取り)</span><b>${yen(s.unpaid)}</b></div><div class="kpi"><span>所得区分 要確認</span><b class="${pend?'dn':'up'}">${pend} 件</b></div></div>
- <div class="card"><b>月別 売上(緑)と経費(赤) ${S.year}年</b>${mchart(S.year)}</div>
+ return `<div class="kpis"><div class="kpi"><span>本業の給与収入</span><b>${yen(s.salary)}</b></div><div class="kpi"><span>事業 売上</span><b class="up">${yen(T[0])}</b></div><div class="kpi"><span>事業 経費(算入額)</span><b class="dn">${yen(T[1])}</b></div><div class="kpi"><span>事業 収支(税引前)</span><b class="${net>=0?'up':'dn'}">${yen(net)}</b></div><div class="kpi"><span>未入金(手取り)</span><b>${yen(s.unpaid)}</b></div><div class="kpi"><span>未払金残高</span><b>${yen(apb)}</b></div><div class="kpi"><span>入金日未設定(要確認)</span><b class="${s.nopaid?'dn':'up'}">${s.nopaid} 件</b></div><div class="kpi"><span>所得区分 要確認</span><b class="${pend?'dn':'up'}">${pend} 件</b></div></div>
+ <div class="card"><b>月別の推移 ${S.year}年</b>${mchart(S.year)}</div>
  <div class="card"><b>事業別の収支</b><div class="tw"><table><tr><th>事業</th><th class="n">売上</th><th class="n">経費</th><th class="n">収支</th></tr>${ids.map(i=>`<tr><td>${esc(bizName(i))}</td><td class="n">${yen(s.biz[i].sales)}</td><td class="n">${yen(s.biz[i].exp)}</td><td class="n ${s.biz[i].sales-s.biz[i].exp>=0?'up':'dn'}">${yen(s.biz[i].sales-s.biz[i].exp)}</td></tr>`).join('')||'<tr><td colspan=4>データがありません。「はじめに」の手順で登録してください。</td></tr>'}</table></div><small>税引前の単純集計です。所得金額・課税所得ではありません。</small></div>
  <div class="card"><b>投資取引の実現損益(別管理・事業売上に含めません)</b><div class="tw"><table>${Object.entries(calc.invest(S.db,S.year)).map(([k,v])=>`<tr><td>${esc(k)}</td><td class="n">${yen(v)}</td></tr>`).join('')||'<tr><td>データなし</td></tr>'}</table></div></div>
  <div class="card"><b>経費カテゴリ別(算入額)</b><div class="tw"><table>${Object.entries(s.cat).map(([k,v])=>`<tr><td>${esc(k)}</td><td class="n">${yen(v)}</td></tr>`).join('')||'<tr><td>データなし</td></tr>'}</table></div></div>`}
-function crud(k){const E=ENT[k],e=S.edit,rows=S.db[k].filter(r=>k==='businesses'||k==='assets'||k==='accounts'||(k==='salary'||k==='opening'?+r.year===S.year:String(r.date).startsWith(S.year)));
+function crud(k){const E=ENT[k],e=S.edit,rows0=S.db[k].filter(r=>k==='businesses'||k==='assets'||k==='accounts'||(k==='salary'||k==='opening'?+r.year===S.year:String(r.date).startsWith(S.year)));
+ const so=S.sort&&S.sort.k===k?S.sort:null,g2=r=>NUM.has(so.c)?(+val(k,r,so.c)||0):String(val(k,r,so.c)??''),rows=so?[...rows0].sort((a,b)=>(NUM.has(so.c)?g2(a)-g2(b):g2(a).localeCompare(g2(b),'ja'))*so.d):rows0;
  const sample=e?S.db[k].find(r=>r.id===e)||{}:{};
- const inp=f=>{const h=HINT[f[0]],x=inp0(f);return h?x.replace('</label>',`<small>${h}</small></label>`):x},inp0=([n,l,t,o])=>{const v=sample[n]??(n==='ratio'?100:'');
+ const inp=f=>{const h=HINT[f[0]],x=inp0(f);return h?x.replace('</label>',`<small>${h}</small></label>`):x},inp0=([n,l,t,o])=>{const v=sample[n]??(n==='ratio'?100:n==='year'?S.year:'');
   if(t==='sel')return `<label>${l}<select id="f_${n}">${o.map(x=>`<option ${x===v?'selected':''}>${x}</option>`).join('')}</select></label>`;
   if(t==='acc')return `<label>${l}<select id="f_${n}">${allAcc().map(x=>`<option ${x===v?'selected':''}>${esc(x)}</option>`).join('')}</select></label>`;
   if(t==='biz')return `<label>${l}<select id="f_${n}"><option value="">選択…</option>${S.db.businesses.filter(b=>b.active!=='無効').map(b=>`<option value="${b.id}" ${b.id===v?'selected':''}>${esc(b.name)}</option>`).join('')}</select></label>`;
   return `<label>${l}<input id="f_${n}" type="${t==='num'?'number':t}" value="${esc(v)}"></label>`};
- const warn=k==='invest'?'<div class="warn">投資損益は事業売上とは別管理です。NISA口座は課税口座と合算しません。実現損益は取引報告書等を見て手入力してください(自動計算は未対応)。</div>':k==='assets'?'<div class="warn">減価償却は簡易的な定額法の仮計算です。少額減価償却資産の特例・耐用年数・償却方法は必ず確認してください。</div>':k==='owner'?'<div class="warn">家計と事業の間の資金移動です。収入・経費には含まれません。</div>':k==='expense'?'<div class="warn">按分割合を設定しても、必要経費として認められるとは限りません。根拠を記録してください。</div>':k==='income'?'<div class="warn">売上・手数料・源泉徴収税額・入金額は別項目です。入金額＝売上−手数料−源泉(手数料が売上から差し引かれる場合の目安)。</div>':'';
+ const warn=k==='invest'?'<div class="warn">投資損益は事業売上とは別管理です。NISA口座は課税口座と合算しません。実現損益は取引報告書等を見て手入力してください(自動計算は未対応)。</div>':k==='assets'?'<div class="warn">【仮計算】定額法の月割による簡易計算で、国税庁の資料との照合は済んでいません。少額減価償却資産の特例・定率法・売却時の処理は自動計算しません(「少額・一括など」を選ぶと自動計算せず、手動仕訳で処理します)。耐用年数・償却額は必ずご自身で確認してください。</div>':k==='owner'?'<div class="warn">家計と事業の間の資金移動です。収入・経費には含まれません。</div>':k==='expense'?'<div class="warn">按分割合を設定しても、必要経費として認められるとは限りません。根拠を記録してください。</div>':k==='income'?'<div class="warn">売上・手数料・源泉徴収税額・入金額は別項目です。入金額＝売上−手数料−源泉(手数料が売上から差し引かれる場合の目安)。</div>':'';
  return `<div class="card"><b>${TABS[k]}${e?'を編集':'を追加'}</b>${warn}<div class="g">${E.f.map(inp).join('')}</div><button class="b" onclick="saveRow('${k}')">保存</button>${e?'<button class="b s" onclick="S.edit=null;R()">キャンセル</button>':''}</div>
- <div class="card"><b>一覧${k!=='businesses'?'('+S.year+'年)':''}</b><div class="tw"><table><tr>${E.cols.map(c=>`<th class="${NUM.has(c)?'n':''}">${L[c]}</th>`).join('')}<th></th></tr>${rows.map(r=>`<tr>${E.cols.map(c=>`<td class="${NUM.has(c)?'n':''}">${NUM.has(c)?yen(val(k,r,c)):esc(val(k,r,c))}</td>`).join('')}<td><button class="b s" onclick="S.edit='${r.id}';R()">編集</button><button class="b s" onclick="del('${k}','${r.id}')">削除</button></td></tr>`).join('')||`<tr><td colspan=9>まだ登録がありません。上のフォームから追加してください。</td></tr>`}</table></div></div>`}
+ ${k==='salary'?salMonthly():''}<div class="card"><b>一覧${k!=='businesses'&&k!=='assets'&&k!=='accounts'?'('+S.year+'年)':'(全件)'}</b><small> 見出しをクリックで並び替え</small><div class="tw"><table><tr>${E.cols.map(c=>`<th class="${NUM.has(c)?'n':''}" style="cursor:pointer" onclick="sortBy('${k}','${c}')">${L[c]}${so&&so.c===c?(so.d>0?' ▲':' ▼'):''}</th>`).join('')}<th></th></tr>${rows.map(r=>`<tr>${E.cols.map(c=>`<td class="${NUM.has(c)?'n':''}">${NUM.has(c)?yen(val(k,r,c)):esc(val(k,r,c))}</td>`).join('')}<td>${k==='businesses'?`<button class="b s" onclick="mv('${k}','${r.id}',-1)">↑</button><button class="b s" onclick="mv('${k}','${r.id}',1)">↓</button>`:''}<button class="b s" onclick="S.edit='${r.id}';R()">編集</button><button class="b s" onclick="del('${k}','${r.id}')">削除</button></td></tr>`).join('')||`<tr><td colspan=9>まだ登録がありません。上のフォームから追加してください。</td></tr>`}</table></div></div>`}
 async function saveRow(k){const E=ENT[k],o={};
  for(const [n,l,t] of E.f){const v=document.getElementById('f_'+n).value;o[n]=v;if(l.endsWith('*')&&!v)return alert(l.replace('*','')+'は必須です。')}
  if(k==='income'){const d=S.db.income.find(r=>r.id!==S.edit&&r.date===o.date&&r.biz===o.biz&&+r.gross===+o.gross&&r.partner===o.partner);if(d&&!confirm('同じ日付・事業・取引先・金額の収入が既にあります(重複の可能性)。それでも保存しますか？'))return}
+ if(k==='expense'&&S.db.expense.some(r=>r.id!==S.edit&&r.date===o.date&&r.biz===o.biz&&+r.amount===+o.amount&&(r.payee||'')===(o.payee||''))&&!confirm('同じ日付・事業・支払先・金額の経費が既にあります(重複の可能性)。カード利用と銀行引落しを二重に登録していないか確認してください。それでも保存しますか？'))return;
+ if(k==='income'&&o.status==='入金済'&&!o.paid)alert('入金日が空欄のため、未入金(売掛金)として処理します。入金日を入力すると入金仕訳が作られます。');
  if(S.edit){const i=S.db[k].findIndex(r=>r.id===S.edit);S.db[k][i]={...S.db[k][i],...o}}else S.db[k].push({id:crypto.randomUUID(),...o});
- S.edit=null;await save();toast('保存しました');R()}
+ S.edit=null;if(await save())toast('保存しました');R()}
 async function del(k,id){if(!confirm('削除しますか？元に戻せません。'))return;S.db[k]=S.db[k].filter(r=>r.id!==id);await save();R()}
 // ---- CSV / JSON ----
 function dl(name,text,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click()}
-function csv(k){const E=ENT[k],h=E.f.map(f=>f[0]);const cell=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
- const rows=S.db[k].map(r=>h.map(n=>cell(n==='biz'?bizName(r.biz):r[n])).concat(k==='income'?[calc.dep(r)]:k==='expense'?[calc.ded(r)]:[]).join(','));
- dl(`${k}_${S.year}.csv`,'\ufeff'+[h.concat(k==='income'?['入金額']:k==='expense'?['経費算入額']:[]).join(','),...rows].join('\r\n'),'text/csv')}
-function backup(){dl('backup_'+new Date().toISOString().slice(0,10)+'.json',JSON.stringify({app:'fukugyo-kaikei',version:1,data:S.db},null,1),'application/json')}
-function validate(j){if(!j||j.app!=='fukugyo-kaikei'||!j.data)throw Error('このアプリのバックアップ形式ではありません。');
- for(const k of['businesses','income','expense','salary'])if(!Array.isArray(j.data[k]))throw Error(k+'のデータが不正です。');return j.data}
-function restore(f){if(!f)return;const r=new FileReader();r.onload=async()=>{try{const d=validate(JSON.parse(r.result));
- if(!confirm(`現在のデータを上書きして復元します。\n事業${d.businesses.length}・収入${d.income.length}・経費${d.expense.length}・給与${d.salary.length}件。よろしいですか？`))return;
- S.db=fix({...d});await save();R()}catch(e){alert('復元できません: '+e.message)}};r.readAsText(f)}
+function csv(k,mode){const E=ENT[k],h=E.f.map(f=>f[0]),rows=S.db[k].filter(r=>mode==='all'||!YK[k]||YK[k](r)),ex=k==='income'?['入金額']:k==='expense'?['経費算入額']:[];
+ dlCsv(`${k}_${mode==='all'||!YK[k]?'全件':S.year+'年'}.csv`,[h.concat(ex),...rows.map(r=>h.map(n=>n==='biz'?bizName(r.biz):r[n]).concat(k==='income'?[calc.dep(r)]:k==='expense'?[calc.ded(r)]:[]))])}
+const VER=2,DATEK=['date','paid','due','settle','buy','start','sold','end'],AMTK=['gross','fee','wh','amount','cost','social','realized','price','qty'],TBL=['businesses','income','expense','salary','owner','assets','invest','accounts','manual','opening'];
+function backup(){dl('backup_'+new Date().toISOString().slice(0,10)+'.json',JSON.stringify({app:'fukugyo-kaikei',version:VER,data:S.db},null,1),'application/json');S.db.meta.lastBackup=new Date().toISOString();save().then(R)}
+function migrate(j){const d=j.data,v=j.version||1;if(!d||typeof d!=='object')throw Error('data がありません。');if(v>VER)throw Error('新しい形式(version '+v+')のバックアップです。アプリを更新してください。');TBL.forEach(k=>d[k]=d[k]||[]);d.meta=d.meta||{};return d}
+function validate(j){if(!j||j.app!=='fukugyo-kaikei')throw Error('このアプリのバックアップ形式ではありません。');const d=migrate(j),ids=new Set(),bz=new Set();
+ TBL.forEach(k=>{if(!Array.isArray(d[k]))throw Error(k+' が配列ではありません。')});
+ d.businesses.forEach(b=>{if(!b||typeof b.id!=='string'||!b.name)throw Error('事業に id・名称がありません。');bz.add(b.id)});
+ TBL.forEach(k=>d[k].forEach((r,i)=>{const w=k+'['+(i+1)+']: ';if(!r||typeof r!=='object')throw Error(w+'不正なデータです。');if(typeof r.id!=='string'||!r.id)throw Error(w+'id がありません。');if(ids.has(r.id))throw Error(w+'id が重複しています: '+r.id);ids.add(r.id);
+  DATEK.forEach(f=>{if(r[f]&&(!/^\d{4}-\d{2}-\d{2}$/.test(r[f])||isNaN(Date.parse(r[f]))))throw Error(w+f+' の日付形式が不正です: '+r[f])});
+  AMTK.forEach(f=>{if(r[f]!==undefined&&r[f]!==''&&(!isFinite(+r[f])||Math.abs(+r[f])>1e12))throw Error(w+f+' の金額が不正です: '+r[f])});
+  if((k==='income'||k==='expense')&&(!r.biz||!bz.has(r.biz)))throw Error(w+'事業ID が存在しません。');
+  if(k==='salary'&&!(+r.year>1900))throw Error(w+'対象年が不正です。')}));return d}
+function restore(f){if(!f)return;const rd=new FileReader();rd.onload=async()=>{let d;try{d=validate(JSON.parse(rd.result))}catch(e){return alert('復元できません(既存データは変更していません): '+e.message)}
+ if(!confirm(`現在のデータを上書きして復元します。先に現在のデータのバックアップを保存することをおすすめします。\n事業${d.businesses.length}・収入${d.income.length}・経費${d.expense.length}・給与${d.salary.length}件。よろしいですか？`))return;
+ const old=S.db;S.db=fix(d);if(!await save()){S.db=old;R();return alert('保存に失敗したため復元を中止し、元のデータに戻しました。')}R();alert('復元しました: 事業'+d.businesses.length+'・収入'+d.income.length+'・経費'+d.expense.length+'・給与'+d.salary.length+'・仕訳元データ'+(d.manual.length+d.owner.length)+'件')};rd.readAsText(f)}
 async function wipe(){if(confirm('全データを削除します。先にバックアップしましたか？')&&confirm('本当に削除しますか？')){S.db=fix({});await save();R()}}
 function tests(){const r=[],t=(n,ok)=>r.push((ok?'OK  ':'NG  ')+n);
  const db=(sal,inc,exp)=>({salary:sal,income:inc,expense:exp,businesses:[]});
@@ -217,17 +256,52 @@ function tests(){const r=[],t=(n,ok)=>r.push((ok?'OK  ':'NG  ')+n);
  const J2=calc.journals({opening:[{year:2026,oacct:'普通預金',amount:100000},{year:2026,oacct:'未払金',amount:20000}],manual:[{date:'2026-2-1',mdr:'消耗品費',mcr:'現金',amount:3000,memo:'x'}]},2026),T2=calc.tb(J2);
  t('期首残高・手動仕訳の貸借一致',J2.length===3&&J2.every(j=>sum(j.dr)===sum(j.cr)));
  t('元入金=100,000-20,000',T2['元入金'][1]-T2['元入金'][0]===80000);
+ {const sy=S.year;S.year=2026;
+ const mk=o=>({businesses:[],income:[],expense:[],salary:[],owner:[],assets:[],invest:[],accounts:[],manual:[],opening:[],meta:{},...o}),bl=(T,a)=>T[a]?T[a][0]-T[a][1]:0,TB=(d,y)=>calc.tb(calc.journals(d,y)),bal=J=>J.every(j=>sum(j.dr)===sum(j.cr));
+ const inc={id:'i1',date:'2026-03-01',biz:'b',gross:10000,fee:1000,wh:500,status:'未入金',partner:'p'};
+ let T=TB(mk({income:[inc]}),2026);
+ t('売上計上: 売上10,000・売掛金8,500・手数料1,000・源泉(事業主貸)500',bl(T,'売上')===-10000&&bl(T,'売掛金')===8500&&bl(T,'支払手数料')===1000&&bl(T,'事業主貸')===500);
+ T=TB(mk({income:[{...inc,status:'入金済',paid:'2026-03-20'}]}),2026);t('入金後: 売掛金消込0・預金8,500(手数料控除後)',bl(T,'売掛金')===0&&bl(T,'普通預金')===8500);
+ T=TB(mk({income:[{...inc,status:'入金済'}]}),2026);t('入金日が空欄なら入金済みにしない',bl(T,'売掛金')===8500&&bl(T,'普通預金')===0);
+ t('源泉徴収税額は経費に入らない(経費=手数料のみ)',Object.keys(T).filter(a=>CATS.includes(a)).reduce((x,a)=>x+bl(T,a),0)===1000);
+ const e0={id:'e1',date:'2026-04-01',biz:'b',amount:10000,ratio:100,cat:'通信費',payee:'x'};
+ T=TB(mk({expense:[{...e0,pay:PAY[0]}]}),2026);t('銀行払い経費',bl(T,'通信費')===10000&&bl(T,'普通預金')===-10000);
+ T=TB(mk({expense:[{...e0,pay:PAY[1]}]}),2026);t('現金払い経費',bl(T,'現金')===-10000&&bl(T,'通信費')===10000);
+ const cd={...e0,pay:PAY[2],settle:'2026-05-10'};T=TB(mk({expense:[cd]}),2026);t('カード+後日引落: 未払金0・経費は1回だけ',bl(T,'未払金')===0&&bl(T,'通信費')===10000&&bl(T,'普通預金')===-10000);
+ T=TB(mk({expense:[{...cd,settle:''}]}),2026);t('カード未引落: 未払金10,000',-bl(T,'未払金')===10000);
+ T=TB(mk({expense:[{...e0,ratio:60,pay:PAY[0]}]}),2026);t('按分: 経費6,000+事業主貸4,000(二重計上なし)',bl(T,'通信費')===6000&&bl(T,'事業主貸')===4000);
+ T=TB(mk({expense:[{...e0,ratio:60,pay:PAY[4]}]}),2026);t('個人資金立替: 経費6,000/事業主借6,000/私用分は記帳しない',bl(T,'通信費')===6000&&-bl(T,'事業主借')===6000&&bl(T,'事業主貸')===0);
+ T=TB(mk({owner:[{id:'o1',date:'2026-02-01',kind:'事業主貸',amount:3000,acct:'普通預金'},{id:'o2',date:'2026-02-02',kind:'事業主借',amount:5000,acct:'普通預金'}]}),2026);t('事業主貸・借は収益費用に入らない',bl(T,'事業主貸')===3000&&-bl(T,'事業主借')===5000&&bl(T,'普通預金')===2000);
+ T=TB(mk({assets:[{id:'a1',aname:'PC',buy:'2026-01-10',cost:120000,start:'2026-01-10',ratio:100,life:4}]}),2026);t('固定資産: 取得120,000・償却(仮)後の簿価',bl(T,'減価償却費')>0&&bl(T,'工具器具備品')===120000-bl(T,'減価償却費'));
+ const d2=mk({income:[{...inc,date:'2026-12-20',status:'入金済',paid:'2027-01-15'}],expense:[{...e0,date:'2026-12-25',pay:PAY[2],settle:'2027-01-20'}]});
+ const c26=TB(d2,2026),c27=TB(d2,2027),cj=calc.journals(d2,2027).filter(j=>j.src==='carry');
+ t('年度またぎ: 2026末 売掛金8,500・未払金10,000',bl(c26,'売掛金')===8500&&-bl(c26,'未払金')===10000);
+ t('前年期末残高=翌年期首(繰越仕訳)',cj.length===1&&sum(cj[0].dr.filter(x=>x[0]==='売掛金'))===8500&&sum(cj[0].cr.filter(x=>x[0]==='未払金'))===10000);
+ t('翌年に入金・引落で消込(売掛金0・未払金0)・貸借一致',bl(c27,'売掛金')===0&&bl(c27,'未払金')===0&&bal(calc.journals(d2,2027)));
+ const dE=mk({income:[{...inc,status:'入金済',paid:'2026-03-20'}]}),b4=bl(TB(dE,2026),'普通預金');dE.income[0].gross=20000;const af=bl(TB(dE,2026),'普通預金');dE.income.length=0;
+ t('編集・削除後の再計算(8,500→18,500→0)',b4===8500&&af===18500&&bl(TB(dE,2026),'普通預金')===0);
+ t('CSV年度条件: 2025計上・2026入金は2026に含む/2027計上は含まない',YK.income({date:'2025-12-31',paid:'2026-01-05'})&&!YK.income({date:'2027-01-01'}));
+ const sal=Array.from({length:12},(_,i)=>({year:2026,month:String(i+1),gross:300000,social:45000,wh:8000}));
+ const ss=calc.summary(mk({salary:sal,income:[{...inc,gross:500000}],expense:[{...e0,amount:100000}]}),2026);t('月別給与12か月=3,600,000・副業売上と別枠',ss.salary===3600000&&ss.biz.b.sales===500000);
+ t('副業収支が20万円超の目安',calc.side(mk({income:[{...inc,gross:300000}],expense:[{...e0,amount:50000}]}),2026)===250000);
+ const bk=d=>({app:'fukugyo-kaikei',version:2,data:d}),rj=d=>{try{validate(bk(d));return false}catch(e){return true}},gd=mk({businesses:[{id:'b',name:'x'}],income:[{id:'i1',date:'2026-03-01',biz:'b',gross:100}]});
+ t('復元検証: 正常データは通る',!rj(JSON.parse(JSON.stringify(gd))));
+ t('復元検証: 不正な日付/金額/重複ID/存在しない事業IDを拒否',rj({...gd,income:[{id:'i1',date:'2026/3/1',biz:'b',gross:1}]})&&rj({...gd,income:[{id:'i1',date:'2026-03-01',biz:'b',gross:'abc'}]})&&rj({...gd,income:[{id:'i1',date:'2026-03-01',biz:'b'},{id:'i1',date:'2026-03-02',biz:'b'}]})&&rj({...gd,income:[{id:'i1',date:'2026-03-01',biz:'zzz'}]}));
+ S.year=sy}
  document.getElementById('tr').textContent=r.join('\n')}
-function data(){return `<div class="card"><b>CSV出力(${S.year}年は日付で絞らず全件)</b><br>${['businesses','income','expense','salary','owner','assets','invest','accounts','manual','opening'].map(k=>`<button class="b" onclick="csv('${k}')">${TABS[k]}</button>`).join('')}</div>
-<div class="card"><b>バックアップ / 復元</b><br>最終保存: ${S.db.meta.saved?new Date(S.db.meta.saved).toLocaleString('ja-JP'):'なし'}<br><button class="b" onclick="backup()">JSONバックアップ</button><label style="margin-top:8px">復元(JSON)<input type="file" accept=".json" onchange="restore(this.files[0])"></label><button class="b s" onclick="wipe()">全データ削除</button>
+function data(){return `<div class="card"><b>CSV出力 — 出力範囲を確認してください(対象年: ${S.year}年)</b><div class="tw"><table><tr><th>データ</th><th>対象年の範囲</th><th></th></tr>${['income','expense','salary','owner','invest','manual','opening'].map(k=>`<tr><td>${TABS[k]}</td><td>${{income:'売上計上日または入金日が対象年',expense:'計上日または引落日が対象年',salary:'対象年',owner:'日付が対象年',invest:'売買日が対象年',manual:'日付が対象年',opening:'対象年'}[k]}</td><td><button class="b" onclick="csv('${k}','year')">${S.year}年のみ</button><button class="b s" onclick="csv('${k}','all')">全年度</button></td></tr>`).join('')}${['businesses','assets','accounts'].map(k=>`<tr><td>${TABS[k]}</td><td>マスター(年度に関係なく全件)</td><td><button class="b s" onclick="csv('${k}','all')">全件</button></td></tr>`).join('')}</table></div><button class="b" onclick="jcsv()">仕訳帳(${S.year}年・前年繰越含む)</button><button class="b" onclick="tbcsv()">試算表(${S.year}年)</button></div>
+<div class="card"><b>バックアップ / 復元</b><br>最終保存: ${S.db.meta.saved?new Date(S.db.meta.saved).toLocaleString('ja-JP'):'なし'}<br>最終バックアップ: ${S.db.meta.lastBackup?new Date(S.db.meta.lastBackup).toLocaleString('ja-JP'):'未実施(定期的に保存してください)'}<br><button class="b" onclick="backup()">JSONバックアップ(全年度・全データ)</button><label style="margin-top:8px">復元(JSON)<input type="file" accept=".json" onchange="restore(this.files[0])"></label><button class="b s" onclick="wipe()">全データ削除</button>
 <div class="warn">データはこの端末のブラウザ内にのみ保存されます。ブラウザデータの削除・端末故障で消えるため、定期的にバックアップしてください。ローカル保存でも端末共有やマルウェアのリスクはあります。</div></div>
 <div class="card"><b>計算テスト</b><br><button class="b" onclick="tests()">実行</button><pre id="tr"></pre></div>`}
 function notes(){return `<div class="card"><b>税務上の確認事項・未実装</b><ul>
 <li>所得区分は名称で自動判定しません。必ずご自身で確認してください(迷う場合は「その他・要確認」)。</li>
-<li>本アプリは<b>帳簿・集計の準備資料</b>です。税額計算、青色申告特別控除の判定、青色申告決算書の公式様式での出力、e-Tax送信は<b>未実装</b>です(税法上の根拠確認が必要なため、推測では実装していません)。</li>
-<li>複式簿記は自動仕訳＋手動仕訳に対応。期首残高・勘定科目の追加も可能です。ただし買掛金の専用管理、仕訳の個別編集(自動仕訳の修正は元データ側で)は未対応です。</li>
-<li>減価償却は簡易定額法の仮計算です。少額減価償却資産の特例・耐用年数は未判定です。投資損益は手入力で、取得価額の自動計算・損益通算・繰越は未実装です。</li>
-<li>証憑はファイル名の記録のみで、ファイル自体は保存しません。電子帳簿保存法の要件を満たすことは保証しません。領収書の読み取り(OCR)・サーバー連携も未実装です。</li>
-<li>税務ルールは対象年ごとに国税庁の一次情報で確認し、「申告準備」タブに根拠を記録してください。</li></ul></div>`}
+<li>PDF/印刷は<b>申告準備資料</b>であり、税務署へ提出する書類ではありません。提出には国税庁の公式様式または確定申告書等作成コーナーを使用してください(公式様式の再現・e-Tax送信は未実装)。</li>
+<li>税額計算、青色申告特別控除(65/55/10万円)の判定は未実装です(要件の一次情報確認が必要なため推測で実装していません)。</li>
+<li>副業の申告要否の目安は国税庁タックスアンサーNo.1900(確認日 2026-10-15)に基づく簡易判定です。副業の収支は青色申告特別控除・減価償却などを反映しない単純計算です。住民税の扱いは自治体にご確認ください。</li>
+<li>売上計上と入金は別仕訳です。入金日が空欄の収入は売掛金として残ります。カード払いは利用日に未払金、引落日に消込みます(引落しを別の経費に登録しないでください)。</li>
+<li>前年末の残高(売掛金・未払金・現金・預金・固定資産)は翌年に自動繰越します。期首残高の手入力は最初の年のみ有効です。</li>
+<li>減価償却は定額法の月割による<b>仮計算</b>で、国税庁資料との照合は未実施です。少額減価償却資産の特例・定率法・売却時の処理・資産の売却仕訳は未実装です。</li>
+<li>投資損益は手入力で、取得価額の自動計算・損益通算・繰越は未実装です。投資は事業売上に合算しません。</li>
+<li>証憑はファイル名の記録のみで、ファイル自体は保存しません。電子帳簿保存法の要件を満たすことは保証しません。OCR・サーバー連携も未実装です。</li></ul></div>`}
 load().then(d=>{if(d)S.db=d;fix(S.db);if(!S.db.businesses.length)S.tab='guide';R()}).catch(e=>{document.getElementById('app').innerHTML='<div class="warn">保存領域を開けません: '+esc(e.message)+'(プライベートブラウズでは動作しない場合があります)</div>'});
 </script></body></html>
