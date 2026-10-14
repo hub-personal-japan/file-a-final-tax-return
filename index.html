@@ -45,7 +45,7 @@ details{border-bottom:1px solid var(--bd);padding:6px 0}summary{cursor:pointer;c
 <script>
 const TAX=['未選択','事業所得','雑所得','不動産所得','給与所得','配当所得','譲渡所得','一時所得','その他・要確認'];
 const CATS=['通信費','消耗品費','旅費交通費','広告宣伝費','支払手数料','外注費','研修費','新聞図書費','水道光熱費','地代家賃','接待交際費','車両関連費','修繕費','保険料','租税公課','減価償却費','その他'];
-const S={db:{businesses:[],income:[],expense:[],salary:[],meta:{}},year:new Date().getFullYear(),tab:'dash',edit:null};
+const S={db:{businesses:[],income:[],expense:[],salary:[],owner:[],assets:[],invest:[],accounts:[],manual:[],opening:[],meta:{}},year:new Date().getFullYear(),tab:'dash',edit:null};
 const ICON={guide:'🧭',dash:'📈',businesses:'🏢',income:'💰',expense:'🧾',salary:'💼',owner:'🔁',assets:'🖥',invest:'📊',ledger:'📚',report:'📑',accounts:'🗂',opening:'🏦',manual:'✍',import:'📥',data:'💾',notes:'⚠'};
 const TABS={guide:'はじめに',dash:'ダッシュボード',businesses:'事業・副業',income:'収入',expense:'支出・経費',salary:'給与',owner:'事業主貸借',assets:'固定資産',invest:'投資取引',ledger:'仕訳・帳簿',report:'申告準備',accounts:'勘定科目',opening:'期首残高',manual:'手動仕訳',import:'CSV取込',data:'データ・テスト',notes:'確認事項'};
 const PAY=['普通預金(銀行振込・口座引落)','現金','クレジットカード(後日引落)','未払金(後払い)','個人資金で立替(事業主借)'];
@@ -55,7 +55,7 @@ income:{f:[['date','売上計上日*','date'],['paid','入金日(入金後に入
 expense:{f:[['date','支払日*','date'],['payee','支払先','text'],['desc','内容','text'],['amount','金額*','num'],['biz','事業*','biz'],['cat','経費カテゴリ','sel',CATS],['ratio','事業使用割合%','num'],['basis','按分の根拠','text'],['pay','支払方法','sel',PAY],['settle','引落・支払日(カード・未払の場合)','date'],['ref','証憑ファイル名','text']],cols:['date','payee','desc','amount','biz','cat','ratio','ded']},
 salary:{f:[['payer','支払者*','text'],['year','対象年*','num'],['month','月','sel',['1','2','3','4','5','6','7','8','9','10','11','12','(月別未入力・年額)']],['kind','区分','sel',['給与','賞与']],['gross','支給額(総支給)*','num'],['social','社会保険料(健保・厚生年金・雇用保険等)','num'],['wh','源泉所得税','num'],['ye','年末調整','sel',['済','未','不明']],['chk','源泉徴収票の確認','sel',['未確認','確認済']],['note','備考','text']],cols:['payer','year','month','kind','gross','social','wh']},
 owner:{f:[['date','日付*','date'],['kind','区分','sel',['事業主貸','事業主借']],['amount','金額*','num'],['acct','口座','sel',['普通預金','現金']],['note','備考','text']],cols:['date','kind','amount','acct','note']},
-assets:{f:[['aname','資産名*','text'],['akind','資産区分','sel',['器具備品','ソフトウェア','車両運搬具','その他(要確認)']],['buy','取得日*','date'],['cost','取得価額*','num'],['start','使用開始日*','date'],['ratio','事業使用割合%','num'],['life','耐用年数*','num'],['amethod','償却方法','sel',['定額法(仮計算)','少額・一括など(要確認・自動計算なし)']],['sold','売却・廃棄日','date'],['note','備考(根拠等)','text']],cols:['aname','buy','cost','ratio','life','abv0','adep','abv']},
+assets:{f:[['aname','資産名*','text'],['akind','資産区分','sel',['器具備品','ソフトウェア','車両運搬具','その他(要確認)']],['buy','取得日*','date'],['cost','取得価額*','num'],['pay','支払方法','sel',PAY],['settle','引落・支払日(カード・未払の場合)','date'],['biz','事業(償却費の集計先)','biz'],['start','使用開始日*','date'],['ratio','事業使用割合%','num'],['life','耐用年数*','num'],['amethod','償却方法','sel',['定額法(仮計算)','少額・一括など(要確認・自動計算なし)']],['sold','売却・廃棄日','date'],['note','備考(根拠等)','text']],cols:['aname','buy','cost','ratio','life','abv0','adep','abv']},
 invest:{f:[['date','売買日*','date'],['acct','口座区分','sel',['特定口座(源泉あり)','特定口座(源泉なし)','一般口座','NISA口座']],['kind','商品','sel',['現物株','信用取引','投資信託','FX','先物','暗号資産','配当・分配金']],['code','銘柄コード・名称','text'],['side','売買','sel',['買','売','配当']],['qty','数量','num'],['price','単価','num'],['fee','手数料','num'],['realized','実現損益(手入力)','num'],['wh','源泉徴収税額','num'],['note','備考(申告要否・繰越等)','text']],cols:['date','acct','kind','code','side','realized','wh']},
 accounts:{f:[['acname','勘定科目名*','text'],['actype','種別','sel',['費用','収益','資産','負債']],['note','備考','text']],cols:['acname','actype','note']},
 manual:{f:[['date','日付*','date'],['mdr','借方科目','acc'],['mcr','貸方科目','acc'],['amount','金額*','num'],['memo','摘要','text']],cols:['date','mdr','mcr','amount','memo']},
@@ -70,8 +70,9 @@ const calc={dep:r=>(+r.gross||0)-(+r.fee||0)-(+r.wh||0),
  summary(db,y){const inY=d=>String(d||'').startsWith(y),out={salary:0,biz:{},unpaid:0,nopaid:0,cat:{}};
   db.salary.filter(s=>+s.year===y).forEach(s=>out.salary+=+s.gross||0);
   const B=id=>out.biz[id]||(out.biz[id]={sales:0,exp:0});
-  db.income.filter(r=>inY(r.date)).forEach(r=>B(r.biz).sales+=+r.gross||0);db.income.filter(r=>!isPaid(r)&&+String(r.date).slice(0,4)<=y).forEach(r=>out.unpaid+=calc.dep(r));out.nopaid=db.income.filter(r=>r.status==='入金済'&&!r.paid).length;
+  db.income.filter(r=>inY(r.date)).forEach(r=>{B(r.biz).sales+=+r.gross||0;const f=+r.fee||0;if(f){B(r.biz).exp+=f;out.cat['支払手数料']=(out.cat['支払手数料']||0)+f}});db.income.filter(r=>!isPaid(r)&&+String(r.date).slice(0,4)<=y).forEach(r=>out.unpaid+=calc.dep(r));out.nopaid=db.income.filter(r=>r.status==='入金済'&&!r.paid).length;
   db.expense.filter(r=>inY(r.date)).forEach(r=>{const d=calc.ded(r);B(r.biz).exp+=d;out.cat[r.cat]=(out.cat[r.cat]||0)+d});
+  (db.assets||[]).forEach(a=>{const d=calc.assetDep(a,y);if(d){B(a.biz||'').exp+=d;out.cat['減価償却費(仮)']=(out.cat['減価償却費(仮)']||0)+d}});
   return out}};
 
 const ACC=c=>CATS.includes(c)?c:'雑費',sum=a=>a.reduce((x,y)=>x+y[1],0),inY=(d,y)=>String(d||'').startsWith(String(y));
@@ -86,22 +87,25 @@ calc.raw=(db,y)=>{const J=[],p=(date,memo,dr,cr,src,biz)=>J.push({date,memo,dr:d
   if(inY(r.date,y)){if(k==='own')p(r.date,memo+'(立替)',[[ACC(r.cat),d]],[['事業主借',d]],r.id,r.biz);else p(r.date,memo,[[ACC(r.cat),d],['事業主貸',a-d]],[[k==='cash'?'現金':k==='ap'?'未払金':'普通預金',a]],r.id,r.biz)}
   if(k==='ap'&&r.settle&&inY(r.settle,y))p(r.settle,'引落 '+(r.payee||''),[['未払金',a]],[['普通預金',a]],r.id,r.biz)});
  (db.owner||[]).filter(r=>inY(r.date,y)).forEach(r=>{const a=+r.amount||0,c=r.acct||'普通預金';if(r.kind==='事業主貸')p(r.date,'事業主貸',[['事業主貸',a]],[[c,a]],r.id);else p(r.date,'事業主借',[[c,a]],[['事業主借',a]],r.id)});
- (db.assets||[]).forEach(a=>{const b=Math.round(base(a));if(inY(a.buy,y))p(a.buy,'取得 '+a.aname,[['工具器具備品',b]],[['普通預金',b]],a.id);const d=calc.assetDep(a,y);if(d)p(y+'-12-31','減価償却(仮) '+a.aname,[['減価償却費',d]],[['工具器具備品',d]],a.id)});
+ (db.assets||[]).forEach(a=>{const c=Math.round(+a.cost||0),b=Math.round(base(a)),ac=ASSET_ACC(a),k=PAYK(a);
+  if(inY(a.buy,y)){if(k==='own')p(a.buy,'取得(立替) '+a.aname,[[ac,b]],[['事業主借',b]],a.id,a.biz);else p(a.buy,'取得 '+a.aname,[[ac,b],['事業主貸',c-b]],[[k==='cash'?'現金':k==='ap'?'未払金':'普通預金',c]],a.id,a.biz)}
+  if(k==='ap'&&a.settle&&inY(a.settle,y))p(a.settle,'引落 '+a.aname,[['未払金',c]],[['普通預金',c]],a.id,a.biz);
+  const d=calc.assetDep(a,y);if(d)p(y+'-12-31','減価償却(仮) '+a.aname,[['減価償却費',d]],[[ac,d]],a.id,a.biz)});
  const lia=['未払金','事業主借',...(db.accounts||[]).filter(a=>a.actype==='負債').map(a=>a.acname)],y0=calc.y0(db);
  (db.opening||[]).filter(r=>+r.year===+y&&+y===y0).forEach(r=>{const a=+r.amount||0;lia.includes(r.oacct)?p(y+'-01-01','期首残高 '+r.oacct,[['元入金',a]],[[r.oacct,a]],'op'):p(y+'-01-01','期首残高 '+r.oacct,[[r.oacct,a]],[['元入金',a]],'op')});
  (db.manual||[]).filter(r=>inY(r.date,y)).forEach(r=>p(r.date,'手動: '+(r.memo||''),[[r.mdr,+r.amount||0]],[[r.mcr,+r.amount||0]],r.id));
  return J};
-calc.y0=db=>{const ys=[],add=d=>{const v=+String(d||'').slice(0,4);if(v>1900)ys.push(v)};(db.income||[]).forEach(r=>{add(r.date);if(isPaid(r))add(r.paid)});(db.expense||[]).forEach(r=>{add(r.date);add(r.settle)});(db.owner||[]).forEach(r=>add(r.date));(db.manual||[]).forEach(r=>add(r.date));(db.assets||[]).forEach(r=>add(r.buy));(db.opening||[]).forEach(r=>ys.push(+r.year));return ys.length?Math.min(...ys):0};
+calc.y0=db=>{const ys=[],add=d=>{const v=+String(d||'').slice(0,4);if(v>1900)ys.push(v)};(db.income||[]).forEach(r=>{add(r.date);if(isPaid(r))add(r.paid)});(db.expense||[]).forEach(r=>{add(r.date);add(r.settle)});(db.owner||[]).forEach(r=>add(r.date));(db.manual||[]).forEach(r=>add(r.date));(db.assets||[]).forEach(r=>{add(r.buy);add(r.settle)});(db.opening||[]).forEach(r=>ys.push(+r.year));return ys.length?Math.min(...ys):0};
 calc.journals=(db,y)=>{const y0=calc.y0(db),J=calc.raw(db,y);
  if(y0&&y>y0){const t={};for(let k=y0;k<y;k++)calc.raw(db,k).forEach(j=>{j.dr.forEach(([a,v])=>t[a]=(t[a]||0)+v);j.cr.forEach(([a,v])=>t[a]=(t[a]||0)-v)});
-  const isBS=a=>!(a==='売上'||a==='雑費'||CATS.includes(a)||custom('収益').includes(a)||['事業主貸','事業主借','元入金'].includes(a)),dr=[],cr=[];
+  const cu=(db.accounts||[]).filter(a=>a.actype==='費用'||a.actype==='収益').map(a=>a.acname),isBS=a=>!(a==='売上'||a==='雑費'||BASE.includes(a)||cu.includes(a)||['事業主貸','事業主借','元入金'].includes(a)),dr=[],cr=[];
   Object.entries(t).forEach(([a,b])=>{if(!isBS(a)||!b)return;b>0?dr.push([a,b]):cr.push([a,-b])});const df=sum(dr)-sum(cr);df>0?cr.push(['元入金',df]):df<0&&dr.push(['元入金',-df]);
   if(dr.length||cr.length)J.push({date:y+'-01-01',memo:'前年繰越',dr,cr,src:'carry'})}
  return J.sort((x,z)=>x.date<z.date?-1:x.date>z.date?1:0)};
 calc.tb=J=>{const t={};J.forEach(j=>{j.dr.forEach(([a,v])=>(t[a]=t[a]||[0,0])[0]+=v);j.cr.forEach(([a,v])=>(t[a]=t[a]||[0,0])[1]+=v)});return t};
 calc.invest=(db,y)=>{const o={};(db.invest||[]).filter(r=>inY(r.date,y)).forEach(r=>o[r.acct]=(o[r.acct]||0)+(+r.realized||0));return o};
 calc.isDup=(list,r)=>list.some(x=>x.date===r.date&&(x.biz||'')===(r.biz||'')&&(+x.gross||+x.amount)===(+r.gross||+r.amount)&&(x.partner||x.payee||'')===(r.partner||r.payee||''));
-const fix=d=>{['businesses','income','expense','salary','owner','assets','invest','accounts','manual','opening'].forEach(k=>d[k]=d[k]||[]);d.meta=d.meta||{};return d};
+const fix=d=>{['businesses','income','expense','salary','owner','assets','invest','accounts','manual','opening'].forEach(k=>{d[k]=Array.isArray(d[k])?d[k]:[];d[k].forEach(r=>{if(r&&typeof r==='object'&&!r.id)r.id=(typeof crypto!=='undefined'&&crypto.randomUUID?crypto.randomUUID():'m'+Math.random().toString(36).slice(2))})});if(!d.meta||typeof d.meta!=='object')d.meta={};return d};
 function dlCsv(n,rows){const c=v=>'"'+String(v??'').replace(/"/g,'""')+'"';dl(n,'\ufeff'+rows.map(r=>r.map(c).join(',')).join('\r\n'),'text/csv')}
 const fmt=l=>l.map(x=>x[0]+' '+yen(x[1])).join(' / ');
 function jcsv(){dlCsv('journal_'+S.year+'.csv',[['日付','借方','貸方','摘要'],...calc.journals(S.db,S.year).map(j=>[j.date,fmt(j.dr),fmt(j.cr),j.memo])])}
@@ -125,7 +129,7 @@ function report(){const J=calc.journals(S.db,S.year),t=calc.tb(J),bal=a=>t[a]?t[
  const wh=S.db.income.filter(r=>inY(r.date,y)).reduce((x,r)=>x+(+r.wh||0),0),swh=S.db.salary.filter(r=>+r.year===y).reduce((x,r)=>x+(+r.wh||0),0),ck=S.db.meta.chk||{};const A=BS.concat(custom('資産')),Lb=BL.concat(custom('負債')),net=sales-tot,aT=A.reduce((x,a)=>x+bal(a),0),rT=Lb.reduce((x,a)=>x-bal(a),0)-bal('元入金')-bal('事業主貸')+net;
  const tr=(a,b)=>`<tr><td>${esc(a)}</td><td class="n">${yen(b)}</td></tr>`;
  return `<div class="card"><b>${y}年 申告準備資料</b> <small>(公式様式ではありません。国税庁の確定申告書等作成コーナー入力時の参考資料です)</small><br><label class="np">氏名(印刷用)<input value="${esc(S.db.meta.name||'')}" onchange="S.db.meta.name=this.value;save()"></label><button class="b np" onclick="window.print()">印刷 / PDF保存</button><div class="warn">この資料は<b>税務署へ提出する書類ではありません</b>。提出には、国税庁の公式様式(青色申告決算書・収支内訳書)または確定申告書等作成コーナーで作成した書類を使用してください。本資料はその入力・作成のための参考資料です。</div><div class="pr"><h2>${y}年分 申告準備資料(参考)</h2>氏名: ${esc(S.db.meta.name||'')} / 作成日: ${new Date().toLocaleDateString('ja-JP')}</div></div>
- ${filingCard()}
+ ${calc.unsupported(S.db,y).length?'<div class="warn">売却・廃棄された固定資産があります。売却・廃棄の仕訳は未実装のため、手動仕訳で処理してください(帳簿上は資産が残ります)。</div>':''}${filingCard()}
  <div class="card"><b>損益計算書(基礎データ)</b><div class="tw"><table><tr><th>項目</th><th class="n">金額</th></tr>${tr('売上',sales)}${ex.map(a=>tr(a,bal(a))).join('')}${tr('差引(青色申告特別控除前)',sales-tot)}</table></div><small>事業主貸・源泉徴収税額は経費に含めていません。</small></div>
  <div class="card"><b>貸借対照表(基礎データ)</b><div class="tw"><table><tr><th>科目</th><th class="n">残高</th></tr>${A.map(a=>tr('資産: '+a,bal(a))).join('')}${tr('資産合計',aT)}${Lb.map(a=>tr('負債等: '+a,-bal(a))).join('')}${tr('元入金',-bal('元入金'))}${tr('事業主貸(控除)',-bal('事業主貸'))}${tr('当期純利益',net)}${tr('負債・資本合計',rT)}${tr('差額(0なら貸借一致)',aT-rT)}</table></div><div class="warn">期首残高を登録していない場合、元入金は0として計算されます。公式様式(青色申告決算書)ではないため、期首残高・科目の正確さは必ずご自身で確認してください。</div></div>
  <div class="card"><b>所得区分別集計(事業のみ)</b><div class="tw"><table><tr><th>区分</th><th class="n">売上</th><th class="n">経費</th><th class="n">差引</th></tr>${Object.entries(by).map(([k,v])=>`<tr><td>${esc(k)}</td><td class="n">${yen(v.a)}</td><td class="n">${yen(v.e)}</td><td class="n">${yen(v.a-v.e)}</td></tr>`).join('')||'<tr><td colspan=4>データなし</td></tr>'}</table></div><table style="margin-top:8px"><tr><th>別管理</th><th class="n">金額</th></tr>${tr('給与収入(給与所得・別集計)',s.salary)}${Object.entries(inv).map(([k,v])=>tr('投資 実現損益: '+k,v)).join('')}${tr('源泉徴収税額 事業収入分',wh)}${tr('源泉徴収税額 給与分',swh)}</table></div>
@@ -133,23 +137,23 @@ function report(){const J=calc.journals(S.db,S.year),t=calc.tb(J),bal=a=>t[a]?t[
  <div class="card"><b>確定申告前チェックリスト</b>${CHK.map((c,i)=>`<label><input type="checkbox" style="width:auto" ${ck[y+'_'+i]?'checked':''} onchange="tog(${i})"> ${c}</label>`).join('')}</div>
  <div class="card np"><b>税務ルールの根拠管理(国税庁等の一次情報)</b><div class="g"><label>URL<input id="ru_url"></label><label>対象年<input id="ru_year" type="number" value="${y}"></label><label>確認日<input id="ru_date" type="date"></label><label>メモ<input id="ru_memo"></label></div><button class="b" onclick="addRule()">追加</button>
  <div class="tw"><table><tr><th>URL</th><th>対象年</th><th>確認日</th><th>メモ</th><th></th></tr>${(S.db.meta.rules||[]).map((r,i)=>`<tr><td>${esc(r.url)}</td><td>${esc(r.year)}</td><td>${esc(r.date)}</td><td>${esc(r.memo)}</td><td><button class="b s" onclick="delRule(${i})">削除</button></td></tr>`).join('')||'<tr><td colspan=5>未登録</td></tr>'}</table></div></div>`}
-const BS=['現金','普通預金','売掛金','工具器具備品'],BL=['未払金','事業主借'];
+const BS=['現金','普通預金','売掛金','工具器具備品','ソフトウェア','車両運搬具'],BL=['未払金','事業主借'];
 function parseCSV(t){const R=[];let r=[],c='',q=false;for(let i=0;i<t.length;i++){const h=t[i];if(q){if(h=='"'){if(t[i+1]=='"'){c+='"';i++}else q=false}else c+=h}else if(h=='"')q=true;else if(h==','){r.push(c);c=''}else if(h=='\n'||h=='\r'){if(h=='\r'&&t[i+1]=='\n')i++;r.push(c);R.push(r);r=[];c=''}else c+=h}if(c||r.length){r.push(c);R.push(r)}return R.filter(x=>x.some(v=>v!==''))}
-const nd=v=>{const m=String(v).match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/);return m?`${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`:''},na=v=>Math.abs(parseFloat(String(v).replace(/[^\d.\-]/g,''))||0);
+const nd=v=>{const m=String(v).match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/);return m?`${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`:''},na=v=>parseFloat(String(v).replace(/[▲△−]/g,'-').replace(/[^\d.\-]/g,''))||0;
 function impLoad(f){if(!f)return;const r=new FileReader(),e=document.getElementById('enc').value;r.onload=()=>{const R2=parseCSV(r.result);if(R2.length<2)return alert('データ行がありません。');S.imp={h:R2[0],rows:R2.slice(1),fname:f.name,map:{t:'expense',b:'',d:0,a:1,p:2}};R()};r.readAsText(f,e)}
-function impRows(){const m=S.imp,mp=m.map,inc=mp.t==='income',ex=inc?S.db.income:S.db.expense,seen=[];return m.rows.map(r=>{const o={date:nd(r[mp.d]),amt:na(r[mp.a]),p:r[mp.p]||''},x=inc?{date:o.date,biz:mp.b,gross:o.amt,partner:o.p}:{date:o.date,biz:mp.b,amount:o.amt,payee:o.p};o.dup=calc.isDup(ex.concat(seen),x);o.bad=!o.date||!o.amt;o.x=x;seen.push(x);return o})}
+function impRows(){const m=S.imp,mp=m.map,inc=mp.t==='income',ex=inc?S.db.income:S.db.expense,seen=[];return m.rows.map(r=>{const o={date:nd(r[mp.d]),amt:na(r[mp.a]),p:r[mp.p]||''},x=inc?{date:o.date,biz:mp.b,gross:o.amt,partner:o.p}:{date:o.date,biz:mp.b,amount:o.amt,payee:o.p};o.dup=calc.isDup(ex.concat(seen),x)||(!inc&&calc.cardDup(ex.concat(seen),x));o.neg=o.amt<0;o.bad=!o.date||!o.amt||o.neg;o.x=x;seen.push(x);return o})}
 async function impGo(withDup){const m=S.imp,mp=m.map;if(!mp.b)return alert('事業を選択してください。');let n=0;impRows().forEach(o=>{if(o.bad||(o.dup&&!withDup))return;const base2={id:crypto.randomUUID(),src:m.fname,importedAt:new Date().toISOString()};S.db[mp.t].push(mp.t==='income'?{...base2,...o.x,fee:0,wh:0,status:'入金済',paid:o.x.date,desc:''}:{...base2,...o.x,cat:'その他',ratio:100,desc:'',pay:PAY[0]});n++});await save();S.imp=null;alert(n+'件を取り込みました。内容を確認し、経費カテゴリ等を設定してください。');R()}
 function imp(){const m=S.imp;if(!m)return `<div class="card"><b>CSV取込</b><div class="warn">銀行・カード・収益レポート等のCSVを取り込みます。取込前に列の対応付けとプレビューで確認できます。</div><label>文字コード<select id="enc"><option>UTF-8</option><option>Shift_JIS</option></select></label><label>CSVファイル(1行目は見出し)<input type="file" accept=".csv,.txt" onchange="impLoad(this.files[0])"></label></div>`;
  const o=v=>m.h.map((x,i)=>`<option value="${i}" ${v===i?'selected':''}>${esc(x)}</option>`).join(''),mp=m.map,rows=impRows();
  return `<div class="card"><b>列の対応付け: ${esc(m.fname)}</b><div class="g"><label>取込先<select onchange="S.imp.map.t=this.value;R()"><option value="expense" ${mp.t==='expense'?'selected':''}>経費</option><option value="income" ${mp.t==='income'?'selected':''}>収入</option></select></label>
  <label>事業<select onchange="S.imp.map.b=this.value;R()"><option value="">選択…</option>${S.db.businesses.map(b=>`<option value="${b.id}" ${b.id===mp.b?'selected':''}>${esc(b.name)}</option>`).join('')}</select></label>
  <label>日付の列<select onchange="S.imp.map.d=+this.value;R()">${o(mp.d)}</select></label><label>金額の列<select onchange="S.imp.map.a=+this.value;R()">${o(mp.a)}</select></label><label>取引先・摘要の列<select onchange="S.imp.map.p=+this.value;R()">${o(mp.p)}</select></label></div></div>
- <div class="card"><b>プレビュー(先頭30件 / 全${rows.length}件、重複候補${rows.filter(r=>r.dup).length}、エラー${rows.filter(r=>r.bad).length})</b><div class="tw"><table><tr><th>日付</th><th class="n">金額</th><th>取引先</th><th>状態</th></tr>${rows.slice(0,30).map(r=>`<tr><td>${esc(r.date)}</td><td class="n">${yen(r.amt)}</td><td>${esc(r.p)}</td><td>${r.bad?'エラー(日付/金額)':r.dup?'重複候補':'OK'}</td></tr>`).join('')}</table></div>
+ <div class="card"><b>プレビュー(先頭30件 / 全${rows.length}件、重複候補${rows.filter(r=>r.dup).length}、エラー${rows.filter(r=>r.bad).length})</b><div class="tw"><table><tr><th>日付</th><th class="n">金額</th><th>取引先</th><th>状態</th></tr>${rows.slice(0,30).map(r=>`<tr><td>${esc(r.date)}</td><td class="n">${yen(r.amt)}</td><td>${esc(r.p)}</td><td>${r.neg?'返金・取消(自動取込しません。手動で処理)':r.bad?'エラー(日付/金額)':r.dup?'重複候補(同一取引またはカード引落)':'OK'}</td></tr>`).join('')}</table></div>
  <button class="b" onclick="impGo(false)">重複・エラーを除いて取込</button><button class="b s" onclick="impGo(true)">重複も含めて取込</button><button class="b s" onclick="S.imp=null;R()">キャンセル</button></div>`}
 
 const BASE=CATS.slice(),custom=t=>((S.db&&S.db.accounts)||[]).filter(a=>a.actype===t).map(a=>a.acname);
 function syncCats(){CATS.length=0;CATS.push(...BASE,...custom('費用'))}
-const allAcc=()=>[...new Set(['現金','普通預金','売掛金','未払金','工具器具備品','事業主貸','事業主借','元入金','売上',...CATS,...custom('資産'),...custom('負債'),...custom('収益')])];
+const allAcc=()=>[...new Set(['現金','普通預金','売掛金','未払金','工具器具備品','ソフトウェア','車両運搬具','事業主貸','事業主借','元入金','売上',...CATS,...custom('資産'),...custom('負債'),...custom('収益')])];
 const HINT={gross:'手数料・源泉を引く前の売上総額(税込)',fee:'プラットフォーム等が差し引いた額',wh:'報酬から天引きされた所得税。経費ではありません',paid:'実際に入金された日。空欄の間は売掛金(未入金)として扱います',ratio:'事業で使った割合。例: 通信費の60%なら 60',basis:'按分の根拠(例: 使用時間の割合)を残しておくと安心です',tax:'名称でなく実態で判断。迷ったら「その他・要確認」',blue:'青色申告承認申請書の提出状況',pay:'カード払いは利用日に経費と未払金を計上し、引落日を入れると未払金を消し込みます(引落しを別の経費として重複登録しないでください)',settle:'カード・未払金の場合のみ。実際に引落・支払った日',realized:'取引報告書などを見て手入力',life:'法定耐用年数を確認して入力',cost:'購入にかかった総額',ye:'年末調整が済んでいるか',acct:'お金が動く口座',actype:'費用=経費科目として追加 / 収益=売上の仲間 / 資産・負債=貸借対照表用',oacct:'資産(現金・預金など)または負債(未払金など)を選択',mdr:'お金の使い道・増えた先(借方)',mcr:'お金の出どころ(貸方)'};
 const HELP={dash:'<b>ダッシュボード</b>: 今年のお金の状況を一目で見る画面です。給与・事業売上・経費・投資は混ぜずに別々に表示します。',businesses:'<b>事業・副業</b>: 収入の「入れ物」です。YouTube、開発、物販など自由に追加できます。所得区分は名前では決まりません。迷ったら「その他・要確認」のままにしてください。',income:'<b>収入</b>: 売上を記録します。売上・手数料・源泉徴収税額・入金額は別々に入れると、入金額が自動計算されます。売上計上日と入金日は別です。入金日を入れると入金仕訳(売掛金の消込)が作られ、空欄の間は売掛金として残ります。',expense:'<b>支出・経費</b>: 仕事に使ったお金を記録します。自宅の通信費など私用と兼ねるものは「事業使用割合」を入れ、根拠をメモします。',salary:'<b>給与</b>: 本業の給与を毎月の給与明細を見て月別に入力します(賞与は区分「賞与」)。社会保険料・源泉所得税は会社が天引き済みの金額です。事業売上には含まれず、別枠で集計されます。',owner:'<b>事業主貸・事業主借</b>: 事業のお金を私用に引き出したら「事業主貸」、私のお金を事業に入れたら「事業主借」。収入・経費ではありません。',assets:'<b>固定資産</b>: パソコンなど長く使う高額な物を登録します。減価償却は簡易な仮計算です。特例の適用は必ずご自身で確認してください。',invest:'<b>投資取引</b>: 株・FXなどは事業売上とは別に管理します。NISA口座は課税口座と分けて表示されます。',ledger:'<b>仕訳・帳簿</b>: 入力したデータから複式簿記の仕訳が自動で作られます。仕訳帳・試算表・元帳・事業別補助元帳を見られます。',report:'<b>申告準備</b>: 損益・貸借の基礎データ、所得区分別の集計、チェックリストをまとめます。公式様式ではなく、申告書作成時の参考資料です。',accounts:'<b>勘定科目</b>: 経費科目などを自分で追加できます。追加した「費用」は経費カテゴリの選択肢に出ます。',opening:'<b>期首残高</b>: 最初の年の年初残高だけ入力します。2年目以降は前年末の残高(売掛金・未払金・現金・預金・固定資産など)が自動で繰り越されます。',manual:'<b>手動仕訳</b>: 自動仕訳で表せない取引を、借方・貸方を選んで直接入力します。',import:'<b>CSV取込</b>: 銀行やカードのCSVを取り込みます。列の対応付け→プレビュー→取込の順に進みます。',data:'<b>データ・テスト</b>: CSV出力、バックアップ(必ず定期的に!)、計算テストができます。'};
 function toast(m){const e=document.createElement('div');e.id='toast';e.textContent=m;document.body.appendChild(e);setTimeout(()=>e.remove(),1800)}
@@ -167,6 +171,10 @@ function guide(){const d=S.db,st=[['businesses','事業・副業を登録する'
 const isPaid=r=>!!r.paid&&r.status!=='未入金',sum2=(a,f)=>a.reduce((x,r)=>x+(+r[f]||0),0);
 const PAYK=r=>{const p=r.pay||'',m=r.method||'';if(p.startsWith('現金')||(!p&&m.includes('現金')))return'cash';if(p.startsWith('クレジット')||p.startsWith('未払')||(!p&&m.includes('カード')))return'ap';if(p.startsWith('個人'))return'own';return'bank'};
 const YK={income:r=>inY(r.date,S.year)||inY(r.paid,S.year),expense:r=>inY(r.date,S.year)||inY(r.settle,S.year),salary:r=>+r.year===S.year,owner:r=>inY(r.date,S.year),invest:r=>inY(r.date,S.year),manual:r=>inY(r.date,S.year),opening:r=>+r.year===S.year};
+const ASSET_ACC=a=>({'ソフトウェア':'ソフトウェア','車両運搬具':'車両運搬具'}[a.akind]||'工具器具備品');
+calc.cardDup=(list,r)=>list.some(e=>PAYK(e)==='ap'&&e.settle&&e.settle===r.date&&+e.amount===+r.amount);
+calc.unsupported=(db,y)=>(db.assets||[]).filter(a=>a.sold&&+String(a.sold).slice(0,4)<=y);
+calc.pl=(db,y)=>{const T=calc.tb(calc.journals(db,y)),cu=t=>(db.accounts||[]).filter(a=>a.actype===t).map(a=>a.acname),b=a=>T[a]?T[a][0]-T[a][1]:0;return{sales:-['売上',...cu('収益')].reduce((x,a)=>x+b(a),0),exp:[...BASE,'雑費',...cu('費用')].reduce((x,a)=>x+b(a),0)}};
 function sortBy(k,c){S.sort=S.sort&&S.sort.k===k&&S.sort.c===c?{k,c,d:-S.sort.d}:{k,c,d:1};R()}
 async function mv(k,id,d){const a=S.db[k],i=a.findIndex(r=>r.id===id),j=i+d;if(j<0||j>=a.length)return;[a[i],a[j]]=[a[j],a[i]];S.sort=null;await save();R()}
 calc.side=(db,y)=>Object.values(calc.summary(db,y).biz).reduce((x,v)=>x+v.sales-v.exp,0);
@@ -188,7 +196,7 @@ function R(){
  syncCats();document.getElementById('nav').innerHTML='<div class="logo">◆ TAX PILOT</div>'+Object.entries(TABS).map(([k,v])=>`<button class="${S.tab===k?'on':''}" onclick="S.tab='${k}';S.edit=null;R();scrollTo(0,0)">${ICON[k]||'•'} ${v}</button>`).join('');
  const y=document.getElementById('yr');const cy=new Date().getFullYear(),yl=[];for(let v=Math.min(cy-5,S.year);v<=Math.max(cy+1,S.year);v++)yl.push(v);y.innerHTML=yl.map(v=>`<option ${v===S.year?'selected':''}>${v}</option>`).join('');
  const a=document.getElementById('app');
- const V={guide,dash,data,notes,ledger,report,import:imp},smp=['businesses','income','expense'].some(k=>S.db[k].some(r=>r.sample));a.innerHTML=(smp?'<div class="warn">サンプルデータが含まれています(「はじめに」から削除できます)</div>':'')+(HELP[S.tab]?`<div class="help">${HELP[S.tab]}</div>`:'')+(V[S.tab]||(()=>crud(S.tab)))();
+ const V={guide,dash,data,notes,ledger,report,import:imp},smp=['businesses','income','expense'].some(k=>S.db[k].some(r=>r.sample));a.innerHTML=(S.nostore?'<div class="warn">ブラウザの保存領域を開けないため、入力内容は保存されません(プライベートブラウズでは動作しない場合があります)。通常のウィンドウで開いてください。</div>':'')+(smp?'<div class="warn">サンプルデータが含まれています(「はじめに」から削除できます)</div>':'')+(HELP[S.tab]?`<div class="help">${HELP[S.tab]}</div>`:'')+(V[S.tab]||(()=>crud(S.tab)))();
  a.querySelectorAll('table').forEach(t=>{const h=[...t.rows[0].cells].map(c=>c.textContent);[...t.rows].forEach((r,i)=>{if(r.cells[0].tagName==='TH')r.className='h';else[...r.cells].forEach((c,j)=>c.dataset.l=h[j]||'')})});
 }
 function mchart(y){const m=Array.from({length:12},()=>[0,0,0]),mi=d=>(+String(d).slice(5,7)||1)-1;S.db.income.filter(r=>inY(r.date,y)).forEach(r=>m[mi(r.date)][0]+=+r.gross||0);S.db.expense.filter(r=>inY(r.date,y)).forEach(r=>m[mi(r.date)][1]+=calc.ded(r));S.db.salary.filter(r=>+r.year===y&&+r.month>=1).forEach(r=>m[+r.month-1][2]+=+r.gross||0);const mx=Math.max(1,...m.flat()),h=n=>n/mx*100;
@@ -214,11 +222,16 @@ function crud(k){const E=ENT[k],e=S.edit,rows0=S.db[k].filter(r=>k==='businesses
 async function saveRow(k){const E=ENT[k],o={};
  for(const [n,l,t] of E.f){const v=document.getElementById('f_'+n).value;o[n]=v;if(l.endsWith('*')&&!v)return alert(l.replace('*','')+'は必須です。')}
  if(k==='income'){const d=S.db.income.find(r=>r.id!==S.edit&&r.date===o.date&&r.biz===o.biz&&+r.gross===+o.gross&&r.partner===o.partner);if(d&&!confirm('同じ日付・事業・取引先・金額の収入が既にあります(重複の可能性)。それでも保存しますか？'))return}
+ if(o.ratio!==undefined&&o.ratio!==''&&!(+o.ratio>=0&&+o.ratio<=100))return alert('事業使用割合は0〜100で入力してください。');
+ if(k==='manual'){if(!o.mdr||!o.mcr||o.mdr===o.mcr)return alert('借方と貸方に別々の科目を選んでください。');if(!(+o.amount>0))return alert('金額は0より大きい数字で入力してください。')}
+ if(k==='accounts'&&allAcc().includes(o.acname)&&!(S.edit&&(S.db.accounts.find(r=>r.id===S.edit)||{}).acname===o.acname))return alert('同名の勘定科目が既にあります(標準科目名は使えません)。');
+ if(k==='opening'&&!BS.concat(BL,custom('資産'),custom('負債')).includes(o.oacct))return alert('期首残高には資産・負債の科目を選んでください。');
  if(k==='expense'&&S.db.expense.some(r=>r.id!==S.edit&&r.date===o.date&&r.biz===o.biz&&+r.amount===+o.amount&&(r.payee||'')===(o.payee||''))&&!confirm('同じ日付・事業・支払先・金額の経費が既にあります(重複の可能性)。カード利用と銀行引落しを二重に登録していないか確認してください。それでも保存しますか？'))return;
  if(k==='income'&&o.status==='入金済'&&!o.paid)alert('入金日が空欄のため、未入金(売掛金)として処理します。入金日を入力すると入金仕訳が作られます。');
  if(S.edit){const i=S.db[k].findIndex(r=>r.id===S.edit);S.db[k][i]={...S.db[k][i],...o}}else S.db[k].push({id:crypto.randomUUID(),...o});
  S.edit=null;if(await save())toast('保存しました');R()}
-async function del(k,id){if(!confirm('削除しますか？元に戻せません。'))return;S.db[k]=S.db[k].filter(r=>r.id!==id);await save();R()}
+async function del(k,id){const r0=S.db[k].find(r=>r.id===id)||{},us=(k==='businesses'&&['income','expense','assets'].some(t=>S.db[t].some(x=>x.biz===id)))?'この事業は収入・経費・固定資産で使われています。削除せず、状態を「無効」にしてください。':(k==='accounts'&&(S.db.manual.some(x=>x.mdr===r0.acname||x.mcr===r0.acname)||S.db.expense.some(x=>x.cat===r0.acname)||S.db.opening.some(x=>x.oacct===r0.acname)))?'この勘定科目は仕訳・経費・期首残高で使われているため削除できません。':'';
+ if(us)return alert(us);if(!confirm('削除しますか？元に戻せません。'))return;const old=S.db[k];S.db[k]=old.filter(r=>r.id!==id);if(!await save()){S.db[k]=old;R();return}toast('削除しました');R()}
 // ---- CSV / JSON ----
 function dl(name,text,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click()}
 function csv(k,mode){const E=ENT[k],h=E.f.map(f=>f[0]),rows=S.db[k].filter(r=>mode==='all'||!YK[k]||YK[k](r)),ex=k==='income'?['入金額']:k==='expense'?['経費算入額']:[];
@@ -229,15 +242,16 @@ function migrate(j){const d=j.data,v=j.version||1;if(!d||typeof d!=='object')thr
 function validate(j){if(!j||j.app!=='fukugyo-kaikei')throw Error('このアプリのバックアップ形式ではありません。');const d=migrate(j),ids=new Set(),bz=new Set();
  TBL.forEach(k=>{if(!Array.isArray(d[k]))throw Error(k+' が配列ではありません。')});
  d.businesses.forEach(b=>{if(!b||typeof b.id!=='string'||!b.name)throw Error('事業に id・名称がありません。');bz.add(b.id)});
- TBL.forEach(k=>d[k].forEach((r,i)=>{const w=k+'['+(i+1)+']: ';if(!r||typeof r!=='object')throw Error(w+'不正なデータです。');if(typeof r.id!=='string'||!r.id)throw Error(w+'id がありません。');if(ids.has(r.id))throw Error(w+'id が重複しています: '+r.id);ids.add(r.id);
+ TBL.forEach(k=>d[k].forEach((r,i)=>{const w=k+'['+(i+1)+']: ';if(!r||typeof r!=='object')throw Error(w+'不正なデータです。');if(typeof r.id!=='string'||!r.id)throw Error(w+'id がありません。');if(!/^[\w.-]{1,64}$/.test(r.id))throw Error(w+'id の形式が不正です(英数字・-・_・.のみ)。');if(ids.has(r.id))throw Error(w+'id が重複しています: '+r.id);ids.add(r.id);
   DATEK.forEach(f=>{if(r[f]&&(!/^\d{4}-\d{2}-\d{2}$/.test(r[f])||isNaN(Date.parse(r[f]))))throw Error(w+f+' の日付形式が不正です: '+r[f])});
   AMTK.forEach(f=>{if(r[f]!==undefined&&r[f]!==''&&(!isFinite(+r[f])||Math.abs(+r[f])>1e12))throw Error(w+f+' の金額が不正です: '+r[f])});
   if((k==='income'||k==='expense')&&(!r.biz||!bz.has(r.biz)))throw Error(w+'事業ID が存在しません。');
-  if(k==='salary'&&!(+r.year>1900))throw Error(w+'対象年が不正です。')}));return d}
+  if(r.ratio!==undefined&&r.ratio!==''&&!(+r.ratio>=0&&+r.ratio<=100))throw Error(w+'事業使用割合が不正です。');if(k==='assets'&&r.biz&&!bz.has(r.biz))throw Error(w+'事業ID が存在しません。');if(k==='salary'&&!(+r.year>1900))throw Error(w+'対象年が不正です。')}));return d}
+async function applyRestore(d){const old=S.db;S.db=fix(d);if(!await save()){S.db=old;return false}return true}
 function restore(f){if(!f)return;const rd=new FileReader();rd.onload=async()=>{let d;try{d=validate(JSON.parse(rd.result))}catch(e){return alert('復元できません(既存データは変更していません): '+e.message)}
  if(!confirm(`現在のデータを上書きして復元します。先に現在のデータのバックアップを保存することをおすすめします。\n事業${d.businesses.length}・収入${d.income.length}・経費${d.expense.length}・給与${d.salary.length}件。よろしいですか？`))return;
- const old=S.db;S.db=fix(d);if(!await save()){S.db=old;R();return alert('保存に失敗したため復元を中止し、元のデータに戻しました。')}R();alert('復元しました: 事業'+d.businesses.length+'・収入'+d.income.length+'・経費'+d.expense.length+'・給与'+d.salary.length+'・仕訳元データ'+(d.manual.length+d.owner.length)+'件')};rd.readAsText(f)}
-async function wipe(){if(confirm('全データを削除します。先にバックアップしましたか？')&&confirm('本当に削除しますか？')){S.db=fix({});await save();R()}}
+ if(!await applyRestore(d)){R();return alert('保存に失敗したため復元を中止し、元のデータに戻しました。')}S.edit=null;S.sort=null;R();alert('復元しました: 事業'+d.businesses.length+'・収入'+d.income.length+'・経費'+d.expense.length+'・給与'+d.salary.length+'・仕訳元データ'+(d.manual.length+d.owner.length)+'件')};rd.readAsText(f)}
+async function wipe(){if(confirm('全データを削除します。先にバックアップしましたか？')&&confirm('本当に削除しますか？')){S.db=fix({});S.edit=null;S.sort=null;S.imp=null;if(!await save())alert('削除後の保存に失敗しました。');R()}}
 function tests(){const r=[],t=(n,ok)=>r.push((ok?'OK  ':'NG  ')+n);
  const db=(sal,inc,exp)=>({salary:sal,income:inc,expense:exp,businesses:[]});
  let s=calc.summary(db([],[{date:'2026-1-1',biz:'a',gross:100000}],[{date:'2026-2-1',biz:'a',amount:20000,ratio:100,cat:'x'}]),2026);t('ケース1 副業のみ 収支80,000',s.biz.a.sales-s.biz.a.exp===80000);
@@ -283,11 +297,43 @@ function tests(){const r=[],t=(n,ok)=>r.push((ok?'OK  ':'NG  ')+n);
  t('CSV年度条件: 2025計上・2026入金は2026に含む/2027計上は含まない',YK.income({date:'2025-12-31',paid:'2026-01-05'})&&!YK.income({date:'2027-01-01'}));
  const sal=Array.from({length:12},(_,i)=>({year:2026,month:String(i+1),gross:300000,social:45000,wh:8000}));
  const ss=calc.summary(mk({salary:sal,income:[{...inc,gross:500000}],expense:[{...e0,amount:100000}]}),2026);t('月別給与12か月=3,600,000・副業売上と別枠',ss.salary===3600000&&ss.biz.b.sales===500000);
- t('副業収支が20万円超の目安',calc.side(mk({income:[{...inc,gross:300000}],expense:[{...e0,amount:50000}]}),2026)===250000);
+ t('副業収支が20万円超の目安',calc.side(mk({income:[{...inc,gross:300000,fee:0}],expense:[{...e0,amount:50000}]}),2026)===250000);
  const bk=d=>({app:'fukugyo-kaikei',version:2,data:d}),rj=d=>{try{validate(bk(d));return false}catch(e){return true}},gd=mk({businesses:[{id:'b',name:'x'}],income:[{id:'i1',date:'2026-03-01',biz:'b',gross:100}]});
  t('復元検証: 正常データは通る',!rj(JSON.parse(JSON.stringify(gd))));
  t('復元検証: 不正な日付/金額/重複ID/存在しない事業IDを拒否',rj({...gd,income:[{id:'i1',date:'2026/3/1',biz:'b',gross:1}]})&&rj({...gd,income:[{id:'i1',date:'2026-03-01',biz:'b',gross:'abc'}]})&&rj({...gd,income:[{id:'i1',date:'2026-03-01',biz:'b'},{id:'i1',date:'2026-03-02',biz:'b'}]})&&rj({...gd,income:[{id:'i1',date:'2026-03-01',biz:'zzz'}]}));
  S.year=sy}
+ {const so=S.db,sy=S.year,st=S.tab,sc=S.sort,mk=o=>({businesses:[],income:[],expense:[],salary:[],owner:[],assets:[],invest:[],accounts:[],manual:[],opening:[],meta:{},...o}),bl=(T,a)=>T[a]?T[a][0]-T[a][1]:0,TB=(d,y)=>calc.tb(calc.journals(d,y)),bal=J=>J.every(j=>sum(j.dr)===sum(j.cr));
+ S.year=2026;S.sort=null;S.db=fix({});syncCats();const bd=[];
+ for(const k of Object.keys(TABS)){S.tab=k;try{const V={guide,dash,data,notes,ledger,report,import:imp},o=(V[k]||(()=>crud(k)))();if(typeof o!=='string'||/undefined|NaN/.test(o))bd.push(k)}catch(e){bd.push(k+':'+e.message)}}
+ t('初回起動: 空データで全タブが表示できる',bd.length===0);
+ t('旧データ補完: 不足配列・id欠落を補う',(d=>{fix(d);return TBL.every(k=>Array.isArray(d[k]))&&!!d.income[0].id})({businesses:[],income:[{date:'2026-01-01'}],expense:[],salary:[]}));
+ t('XSS: HTMLをエスケープ・不正IDの復元を拒否',!esc('<img src=x onerror=alert(1)>').includes('<')&&(()=>{try{validate({app:'fukugyo-kaikei',version:2,data:mk({businesses:[{id:"a'\"><x",name:'x'}]})});return false}catch(e){return true}})());
+ S.db=so;
+ const inc={id:'i1',date:'2026-03-01',biz:'b',gross:20000,fee:1000,wh:0,status:'入金済',paid:'2026-03-20',partner:'p'},e0={id:'e1',date:'2026-04-01',biz:'b',amount:10000,ratio:60,cat:'通信費',payee:'x',pay:PAY[0]},as={id:'a1',aname:'PC',buy:'2026-02-01',cost:120000,start:'2026-01-01',ratio:100,life:4,biz:'b'};
+ const db1=mk({income:[inc],expense:[e0],assets:[as]}),sm=calc.summary(db1,2026),pl=calc.pl(db1,2026);
+ t('事業別集計=仕訳の損益(手数料1,000+按分6,000+償却30,000=経費37,000)',sm.biz.b.sales===20000&&sm.biz.b.exp===37000&&pl.sales===20000&&pl.exp===37000);
+ const db2=mk({income:[{...inc,id:'i2',biz:'c',gross:50000,fee:0}],expense:[{...e0,id:'e2',biz:'c',amount:5000,ratio:100}],...db1}),s2=calc.summary({...db1,income:[...db1.income,{...inc,id:'i2',biz:'c',gross:50000,fee:0}],expense:[...db1.expense,{...e0,id:'e2',biz:'c',amount:5000,ratio:100}]},2026);
+ t('複数事業の事業別集計(b:売上20,000/経費37,000, c:売上50,000/経費5,000)',s2.biz.b.sales===20000&&s2.biz.c.sales===50000&&s2.biz.c.exp===5000);
+ const ca={...as,cost:100000,ratio:60,life:5,start:'2026-02-01',pay:PAY[2],settle:'2026-06-30'},T1=TB(mk({assets:[ca]}),2026),dp=calc.assetDep(ca,2026);
+ t('固定資産(カード・按分60%): 資産60,000−償却・事業主貸40,000・未払金0・預金-100,000',dp>0&&bl(T1,'工具器具備品')===60000-dp&&bl(T1,'事業主貸')===40000&&bl(T1,'未払金')===0&&bl(T1,'普通預金')===-100000);
+ const T2b=TB(mk({assets:[{...ca,pay:PAY[4],settle:'',akind:'ソフトウェア'}]}),2026);t('固定資産(立替・ソフトウェア区分): ソフトウェア科目・事業主借60,000・預金不動',bl(T2b,'ソフトウェア')===60000-dp&&-bl(T2b,'事業主借')===60000&&bl(T2b,'普通預金')===0);
+ t('固定資産の売却・廃棄は未実装(警告対象として検出)',calc.unsupported(mk({assets:[{...as,sold:'2026-09-01'}]}),2026).length===1);
+ const op=mk({opening:[{id:'o1',year:2026,oacct:'普通預金',amount:100000},{id:'o2',year:2026,oacct:'未払金',amount:20000},{id:'o3',year:2027,oacct:'現金',amount:999}],expense:[{...e0,ratio:100,amount:5000}]}),c26=TB(op,2026),cj=calc.journals(op,2027).filter(j=>j.src==='carry')[0],c27=TB(op,2027);
+ t('期首残高→翌年繰越: 2026末(預金95,000/未払金20,000)=2027期首・2027年の期首入力は二重計上しない',bl(c26,'普通預金')===95000&&sum(cj.dr.filter(x=>x[0]==='普通預金'))===95000&&sum(cj.cr.filter(x=>x[0]==='未払金'))===20000&&bl(c27,'現金')===0&&bl(c27,'普通預金')===95000);
+ const so2=S.db;S.db=mk({accounts:[{id:'c1',acname:'配信費',actype:'費用'},{id:'c2',acname:'預り金',actype:'負債'}]});syncCats();
+ const dc=mk({accounts:S.db.accounts,expense:[{...e0,cat:'配信費',ratio:100}],manual:[{id:'m1',date:'2026-05-01',mdr:'普通預金',mcr:'預り金',amount:5000,memo:'x'}]});
+ t('カスタム勘定科目: 費用は損益(翌年へ繰越さない)・負債は繰越',bl(TB(dc,2026),'配信費')===10000&&bl(TB(dc,2027),'配信費')===0&&-bl(TB(dc,2027),'預り金')===5000&&bal(calc.journals(dc,2027)));
+ S.db=so2;syncCats();
+ const mj=TB(mk({manual:[{id:'m',date:'2026-02-01',mdr:'消耗品費',mcr:'現金',amount:3000}]}),2026);t('手動仕訳: 消耗品費3,000・現金-3,000',bl(mj,'消耗品費')===3000&&bl(mj,'現金')===-3000);
+ t('CSV年度条件(経費): 計上2026・引落2027は両年に含む',YK.expense({date:'2026-12-25',settle:'2027-01-20'})&&(S.year=2027,YK.expense({date:'2026-12-25',settle:'2027-01-20'}))&&(S.year=2026,!YK.expense({date:'2027-03-01'})));
+ const pc=parseCSV('日付,摘要,金額\n2026-01-02,"a,b ""c""\nd",1000\n');t('CSV解析: 引用符・カンマ・改行',pc.length===2&&pc[1][1]==='a,b "c"\nd'&&nd('2026/1/2')==='2026-01-02'&&na('▲1,000')===-1000);
+ const cd={...e0,amount:10000,pay:PAY[2],settle:'2026-05-10'};t('カード利用と銀行引落の重複候補',calc.cardDup([cd],{date:'2026-05-10',amount:10000})&&!calc.cardDup([cd],{date:'2026-05-10',amount:9999}));
+ {const sdb=S.db,si=S.imp;S.db=mk({businesses:[{id:'b',name:'x'}]});S.imp={fname:'f',rows:[['2026-01-01','-500','x'],['2026-01-02','500','y']],map:{t:'expense',b:'b',d:0,a:1,p:2}};const ir=impRows();t('CSV取込: 負数(返金・取消)は自動取込せず通常行は取込可',ir[0].neg&&ir[0].bad&&!ir[1].bad);S.db=sdb;S.imp=si}
+ const rt=JSON.parse(JSON.stringify(db1));t('JSON往復後も損益・仕訳が同一',JSON.stringify(calc.journals(rt,2026))===JSON.stringify(calc.journals(db1,2026)));
+ S.year=sy;S.tab=st;S.sort=sc}
+ (async()=>{const sidb=idb,sdb=S.db,al=globalThis.alert;idb={transaction(){throw Error('boom')}};globalThis.alert=()=>{};S.db={businesses:[{id:'b',name:'x'}],income:[],expense:[],salary:[],owner:[],assets:[],invest:[],accounts:[],manual:[],opening:[],meta:{}};
+  const r1=await save(),r2=await applyRestore({businesses:[{id:'z',name:'y'}]}),kept=S.db.businesses[0].id==='b';idb=sidb;globalThis.alert=al;S.db=sdb;
+  r.push((r1===false&&r2===false&&kept?'OK  ':'NG  ')+'保存失敗: 失敗を返し、復元は元データを保持');document.getElementById('tr').textContent=r.join('\n')})();
  document.getElementById('tr').textContent=r.join('\n')}
 function data(){return `<div class="card"><b>CSV出力 — 出力範囲を確認してください(対象年: ${S.year}年)</b><div class="tw"><table><tr><th>データ</th><th>対象年の範囲</th><th></th></tr>${['income','expense','salary','owner','invest','manual','opening'].map(k=>`<tr><td>${TABS[k]}</td><td>${{income:'売上計上日または入金日が対象年',expense:'計上日または引落日が対象年',salary:'対象年',owner:'日付が対象年',invest:'売買日が対象年',manual:'日付が対象年',opening:'対象年'}[k]}</td><td><button class="b" onclick="csv('${k}','year')">${S.year}年のみ</button><button class="b s" onclick="csv('${k}','all')">全年度</button></td></tr>`).join('')}${['businesses','assets','accounts'].map(k=>`<tr><td>${TABS[k]}</td><td>マスター(年度に関係なく全件)</td><td><button class="b s" onclick="csv('${k}','all')">全件</button></td></tr>`).join('')}</table></div><button class="b" onclick="jcsv()">仕訳帳(${S.year}年・前年繰越含む)</button><button class="b" onclick="tbcsv()">試算表(${S.year}年)</button></div>
 <div class="card"><b>バックアップ / 復元</b><br>最終保存: ${S.db.meta.saved?new Date(S.db.meta.saved).toLocaleString('ja-JP'):'なし'}<br>最終バックアップ: ${S.db.meta.lastBackup?new Date(S.db.meta.lastBackup).toLocaleString('ja-JP'):'未実施(定期的に保存してください)'}<br><button class="b" onclick="backup()">JSONバックアップ(全年度・全データ)</button><label style="margin-top:8px">復元(JSON)<input type="file" accept=".json" onchange="restore(this.files[0])"></label><button class="b s" onclick="wipe()">全データ削除</button>
@@ -301,7 +347,9 @@ function notes(){return `<div class="card"><b>税務上の確認事項・未実�
 <li>売上計上と入金は別仕訳です。入金日が空欄の収入は売掛金として残ります。カード払いは利用日に未払金、引落日に消込みます(引落しを別の経費に登録しないでください)。</li>
 <li>前年末の残高(売掛金・未払金・現金・預金・固定資産)は翌年に自動繰越します。期首残高の手入力は最初の年のみ有効です。</li>
 <li>減価償却は定額法の月割による<b>仮計算</b>で、国税庁資料との照合は未実施です。少額減価償却資産の特例・定率法・売却時の処理・資産の売却仕訳は未実装です。</li>
+<li><b>未検証</b>: 源泉徴収税額の勘定科目(本アプリは事業主貸)は一次情報で未確認です。少額減価償却資産の特例(令和8年度改正を含む)・一括償却資産・売却/廃棄の処理は未実装です(確認できた資料は民間解説のみで、国税庁の一次情報での確認は未完了)。固定資産は取得時の支払方法・事業使用割合を反映しますが、償却は仮計算です。</li>
+<li>事業別集計(ダッシュボード)は収入の手数料・経費・固定資産の仮償却費を含みますが、手動仕訳は含みません(帳簿の損益には含まれます)。返金・取消のCSV行(負の金額)は自動取込せず、手動で処理します。</li>
 <li>投資損益は手入力で、取得価額の自動計算・損益通算・繰越は未実装です。投資は事業売上に合算しません。</li>
 <li>証憑はファイル名の記録のみで、ファイル自体は保存しません。電子帳簿保存法の要件を満たすことは保証しません。OCR・サーバー連携も未実装です。</li></ul></div>`}
-load().then(d=>{if(d)S.db=d;fix(S.db);if(!S.db.businesses.length)S.tab='guide';R()}).catch(e=>{document.getElementById('app').innerHTML='<div class="warn">保存領域を開けません: '+esc(e.message)+'(プライベートブラウズでは動作しない場合があります)</div>'});
+load().then(d=>{if(d&&typeof d==='object'&&!Array.isArray(d))S.db=d;fix(S.db);if(!S.db.businesses.length)S.tab='guide';R()}).catch(e=>{S.nostore=true;fix(S.db);R()});
 </script></body></html>
