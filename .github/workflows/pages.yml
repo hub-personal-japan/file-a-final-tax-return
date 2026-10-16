@@ -8,7 +8,7 @@ jobs:
     environment: { name: github-pages, url: "${{ steps.d.outputs.page_url }}" }
     steps:
       - uses: actions/checkout@v4
-      - run: mkdir site && cp index.html site/
+      - run: mkdir site && cp index.html app.js style.css sync.js site/
       - uses: actions/upload-pages-artifact@v3
         with: { path: site }
       - id: d
