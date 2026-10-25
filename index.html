@@ -1,7 +1,10 @@
 <!DOCTYPE html>
 <html lang="ja"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="家計簿(給与・固定費・大きい出費・貯蓄推移)と副業会計・確定申告の準備を1つにまとめた個人用資産管理アプリ">
 <title>資産管理</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;700&display=swap" rel="stylesheet">
 <style>
 #ab{--bg:#0b0e11;--cd:#12161c;--cd2:#181d25;--ink:#eaecef;--mu:#848e9c;--gd:#3ee6b8;--up:#f6465d;--dn:#0ecb81;--ac:var(--up);--ng:var(--dn);--ln:#1e2329;color:var(--ink);font:12px/1.45 "Zen Kaku Gothic New",system-ui,sans-serif;font-variant-numeric:tabular-nums}
@@ -173,6 +176,11 @@
 #ab .w input[type=number]{width:80px}
 #ab .w td,#ab .w th{white-space:normal}#ab .w td.r,#ab .w th.r{white-space:nowrap}#ab .w{overflow-x:hidden}
 
+/* 修正: 操作性・アクセシビリティ(ボタンにポインタ、キーボード操作時のフォーカス表示) */
+#ab .tip{display:none}
+#ab .b,#ab .x,#ab .mb{cursor:pointer}
+#ab button:disabled{cursor:not-allowed;opacity:.55}
+#ab :focus-visible{outline:2px solid var(--gd);outline-offset:1px}
 </style>
 <style>
 :root{--bg:#0b1220;--bg2:#0e1830;--card:#121e36;--bd:#22324f;--fg:#e8eefc;--mut:#8ea0c0;--ac:#d4af37;--tl:#2dd4bf;--up:#34d399;--dn:#f87171;--wn:#fbbf24}
@@ -228,26 +236,27 @@ details{border-bottom:1px solid var(--bd);padding:6px 0}summary{cursor:pointer;c
 @media print{.cols2{column-count:1}}
 @media(max-width:1100px){.sg{grid-template-columns:1fr}#ab .kp.r9{grid-template-columns:repeat(3,minmax(0,1fr))}#ab .dgrid{grid-template-columns:1fr}}
 </style></head><body>
+<noscript><p style="padding:16px;font-family:sans-serif">このアプリはJavaScriptが必要です。ブラウザの設定でJavaScriptを有効にしてください。</p></noscript>
 <div class="shell"><nav id="nav"></nav><div class="ct"><header><div class="ht"><h1 id="pt">📈 ダッシュボード</h1><div id="pd"></div></div><span id="st" class="badge">起動中</span><label id="yrl" style="display:flex;gap:6px;align-items:center">対象年 <select id="yr" onchange="S.year=+this.value;R()"></select></label><button id="mt" class="syn" onclick="document.body.classList.toggle('navopen')">☰ メニュー</button><button id="syn" class="syn">☁ ログイン</button></header><main id="app"></main></div></div>
 <script>
 let curApp='tax';
 const $=i=>document.getElementById(i),Y=n=>(n<0?'-':'')+'¥'+Math.abs(Math.round(n)).toLocaleString(),T=Math.trunc;
-const S0={nid:100,pb:2,sb:1,sv:60000,
-bk:[{id:1,n:'auじぶん',bal:0},{id:2,n:'りそな',bal:0},{id:3,n:'楽天',bal:0},{id:4,n:'SBI',bal:20545}],
-si:[[1,'基本月額','g','fix',265000],[2,'手当','g','fix',5000],[3,'残業(単価×時間)','g','hr',1840],[4,'深夜割増(単価×時間)','g','hr',340],[5,'休日出勤(単価×時間)','g','hr',1987],[6,'健康保険','d','fix',15120],[7,'厚生年金','d','fix',27450],[8,'雇用保険(%)','d','rate',.5026],[9,'源泉所得税(%)','d','rate',2.1106],[10,'住民税','d','fix',14800],[11,'定額減税','d','fix',0],[12,'交通・経費','n','mo',0]].map(a=>({id:a[0],n:a[1],t:a[2],m:a[3],v:a[4]})),
-bo:{mult:1.9,ms:'6,12',base:1},
-bd:[[1,'健康保険(%)','rate',5.04,1,0,''],[2,'厚生年金(%)','rate',9.15,1,0,''],[3,'雇用保険(%)','rate',.5026,0,0,''],[4,'源泉所得税(%・社保後)','rate',2.4737,0,1,'6'],[5,'所得税還付(年末調整)','fix',-13537,0,0,'12']].map(a=>({id:a[0],n:a[1],m:a[2],v:a[3],th:a[4],af:a[5],ms:a[6]})),
-tr:[[1,'クレカ引落(auPay)','exp',2,0,0],[2,'クレカ引落(PayPay)','exp',2,0,10000],[3,'別途振込(残・副業)','inc',2,0,0],[4,'SBI振込(予備費)','xf',2,4,0],[5,'旅行貯蓄','xf',2,3,0]].map(a=>({id:a[0],n:a[1],c:a[2],b:a[3],to:a[4],a:a[5]})),
-fx:[[1,'住居費+京保険料',30000,25,1,'bank'],[2,'NISA',50000,27,3,'bank'],[3,'マイカー共済(ミラ)',5000,28,2,'bank'],[4,'ティップネス',9460,27,2,'bank'],[5,'iPhone',4439,27,2,'bank','2026-10'],[6,'通信費',2315,10,0,'card'],[7,'Netflix',2290,14,0,'card'],[8,'京(変動予算)',30000,0,0,'card'],[9,'京 健康診断',64000,3,0,'year'],[10,'自動車税',12900,5,0,'year'],[11,'Apple Music',10800,10,0,'year'],[12,'Amazon Prime',5900,10,0,'year'],[13,'FEARNOT',6500,12,0,'year'],[14,'車検(2年)',32000,0,0,'year']].map(a=>({id:a[0],n:a[1],a:a[2],d:a[3],b:a[4],k:a[5],end:a[6]||''})),
-m:{'2026-10':{v3:20,t1:300000,t3:60000},'2026-11':{v3:20,v12:1472,t1:100000}},mm:{},
+const S0={nid:100,pb:2,sb:1,sv:50000,
+bk:[{id:1,n:'口座A',bal:0},{id:2,n:'口座B',bal:100000},{id:3,n:'口座C',bal:0},{id:4,n:'口座D',bal:0}],
+si:[[1,'基本月額','g','fix',300000],[2,'手当','g','fix',10000],[3,'残業(単価×時間)','g','hr',2000],[4,'深夜割増(単価×時間)','g','hr',500],[5,'休日出勤(単価×時間)','g','hr',2000],[6,'健康保険','d','fix',15000],[7,'厚生年金','d','fix',27000],[8,'雇用保険(%)','d','rate',.5],[9,'源泉所得税(%)','d','rate',3],[10,'住民税','d','fix',15000],[11,'定額減税','d','fix',0],[12,'交通・経費','n','mo',0]].map(a=>({id:a[0],n:a[1],t:a[2],m:a[3],v:a[4]})),
+bo:{mult:2,ms:'6,12',base:1},
+bd:[[1,'健康保険(%)','rate',5,1,0,''],[2,'厚生年金(%)','rate',9,1,0,''],[3,'雇用保険(%)','rate',.5,0,0,''],[4,'源泉所得税(%・社保後)','rate',2.5,0,1,'6'],[5,'所得税還付(年末調整)','fix',-10000,0,0,'12']].map(a=>({id:a[0],n:a[1],m:a[2],v:a[3],th:a[4],af:a[5],ms:a[6]})),
+tr:[[1,'クレカ引落(カードA)','exp',2,0,0],[2,'クレカ引落(カードB)','exp',2,0,0],[3,'別途振込(サンプル)','inc',2,0,0],[4,'口座D振込(予備費)','xf',2,4,0],[5,'貯蓄振替','xf',2,3,0]].map(a=>({id:a[0],n:a[1],c:a[2],b:a[3],to:a[4],a:a[5]})),
+fx:[[1,'家賃',80000,25,1,'bank'],[2,'つみたて投資',30000,27,3,'bank'],[3,'自動車保険',5000,28,2,'bank'],[4,'ジム',8000,27,2,'bank'],[5,'スマートフォン',3000,27,2,'bank','2027-03'],[6,'通信費',3000,10,0,'card'],[7,'動画配信',1500,14,0,'card'],[8,'変動費の予算',30000,0,0,'card'],[9,'健康診断',50000,3,0,'year'],[10,'自動車税',10000,5,0,'year'],[11,'音楽配信',10000,10,0,'year'],[12,'EC定期購読',5000,10,0,'year'],[13,'ファンクラブ年会費',5000,12,0,'year'],[14,'車検(2年)',30000,0,0,'year']].map(a=>({id:a[0],n:a[1],a:a[2],d:a[3],b:a[4],k:a[5],end:a[6]||''})),
+m:{'2026-10':{v3:20,t1:50000,t3:10000},'2026-11':{v3:20,v12:1000,t1:50000}},mm:{},
 cat:[[201,'交際費(飲み)',5000],[202,'趣味・娯楽(本)',5000],[203,'自動車',0],[204,'交通費',3000],[205,'食費・水道光熱費',0],[206,'日用・消耗品',0]].map(a=>({id:a[0],n:a[1],a:a[2]})),led:[],
-big:[['2026-10','ダイコン',25000],['2026-10','ホワイトニング(2)',33000],['2026-10','エジプト航空券',200000],['2026-11','ホワイトニング(3)',33000],['2026-12','ホワイトニング(h)',33000],['2026-12','バリ島航空券',120000],['2026-12','ダイビング',98000],['2027-01','韓国旅費',80000],['2027-03','エジプト旅費',100000],['2027-04','健康診断',65000],['2027-05','ミラ整備関連',100000],['2027-05','バリ島旅費',80000]].map((a,i)=>({id:i+1,ym:a[0],n:a[1],a:a[2],ap:false,pm:'card',b:2,memo:''}))};
+big:[['2026-10','サンプル出費1',10000],['2026-10','サンプル出費2',20000],['2026-11','サンプル出費3',30000],['2026-12','サンプル出費4',50000],['2026-12','サンプル出費5',30000],['2027-01','サンプル出費6',50000],['2027-02','サンプル出費7',30000],['2027-03','サンプル出費8',100000],['2027-04','サンプル出費9',50000],['2027-04','サンプル出費10',20000],['2027-05','サンプル出費11',50000],['2027-05','サンプル出費12',30000]].map((a,i)=>({id:i+1,ym:a[0],n:a[1],a:a[2],ap:false,pm:'card',b:2,memo:''}))};
 let K;try{K=JSON.parse(localStorage.getItem('kk2'))}catch(e){}K=K||JSON.parse(JSON.stringify(S0));K.pays=K.pays||[{id:301,n:'給与',day:25,b:K.pb||2,r:100}];if(K.cb==null)K.cb=K.sb;
-mig();const ksave=()=>{try{localStorage.setItem('kk2',JSON.stringify(K));localStorage.setItem('kk2t',Date.now())}catch(e){}window.onKKSave&&window.onKKSave()};
+mig();let ksaveWarned=false;const ksave=()=>{try{localStorage.setItem('kk2',JSON.stringify(K));localStorage.setItem('kk2t',Date.now())}catch(e){console.warn('家計簿データの保存に失敗しました',e);if(!ksaveWarned){ksaveWarned=true;alert('ブラウザへの保存に失敗しました(保存容量の上限などの可能性があります)。設定タブからバックアップを書き出してください')}}window.onKKSave&&window.onKKSave()};
 const now=new Date(),tdy=new Date(now.getFullYear(),now.getMonth(),now.getDate());
-function pds(y,day){const[a,b]=y.split('-').map(Number),d=new Date(a,b-1,day),w=d.getDay();if(w==6)d.setDate(d.getDate()-1);if(w==0)d.setDate(d.getDate()-2);return (d.getMonth()+1)+'/'+d.getDate()+'('+'日月火水木金土'[d.getDay()]+')'}
+function pds(y,day){const[a,b]=y.split('-').map(Number),d=new Date(a,b-1,Math.min(day,new Date(a,b,0).getDate())),w=d.getDay();if(w==6)d.setDate(d.getDate()-1);if(w==0)d.setDate(d.getDate()-2);return (d.getMonth()+1)+'/'+d.getDate()+'('+'日月火水木金土'[d.getDay()]+')'}
 function fp(){return K.pays.find(p=>p.k!='inc')||K.pays[0]}
-function pdate(y){const[a,b]=y.split('-').map(Number),d=new Date(a,b-1,(fp()||{day:25}).day),w=d.getDay();if(w==6)d.setDate(d.getDate()-1);if(w==0)d.setDate(d.getDate()-2);return d}
+function pdate(y){const[a,b]=y.split('-').map(Number),d=new Date(a,b-1,Math.min((fp()||{day:25}).day,new Date(a,b,0).getDate())),w=d.getDay();if(w==6)d.setDate(d.getDate()-1);if(w==0)d.setDate(d.getDate()-2);return d}
 const m0=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
 let ym=tdy>pdate(m0)?now.getFullYear()+'-'+String(now.getMonth()+2>12?1:now.getMonth()+2).padStart(2,'0'):m0;if(tdy>pdate(m0)&&now.getMonth()==11)ym=(now.getFullYear()+1)+'-01';
 const autoYm0=ym;
@@ -257,8 +266,8 @@ const pendYm=()=>{for(const y of [m0,nx(m0,-1)]){const d=pdate(y),n=Math.round((
 const baseYm=()=>{const p=pendYm();if(p&&(!K.pdc||K.pdc<p))return p;const c=K.pdc?nx(K.pdc):'';return c&&c>autoYm0?c:autoYm0};
 ym0=baseYm();if(ym==autoYm0&&ym0!=autoYm0){ym=ym0;bs=ym}
 const mo=y=>+y.slice(5),M=y=>K.m[y]||{},bn=id=>(K.bk.find(b=>b.id==id)||{n:'?'}).n,ksum=a=>a.reduce((t,f)=>t+f.a,0);
-const inp=(l,id,f,v,t='number')=>`<input type="${t}" ${t=='number'?'inputmode="numeric" step="any"':''} data-p="${l}.${id}.${f}" value="${v}">`;
-const sel=(l,id,f,o,v)=>`<select data-p="${l}.${id}.${f}" data-n="${typeof o[0][0]=='number'?1:''}">${o.map(x=>`<option value="${x[0]}" ${x[0]==v?'selected':''}>${x[1]}</option>`).join('')}</select>`;
+const inp=(l,id,f,v,t='number')=>`<input type="${t}" ${t=='number'?'inputmode="numeric" step="any"':''} data-p="${l}.${id}.${f}" value="${eh(v)}">`;
+const sel=(l,id,f,o,v)=>`<select data-p="${l}.${id}.${f}" data-n="${typeof o[0][0]=='number'?1:''}">${o.map(x=>`<option value="${eh(x[0])}" ${x[0]==v?'selected':''}>${eh(x[1])}</option>`).join('')}</select>`;
 const BO=()=>K.bk.map(b=>[b.id,b.n]);
 const dkey=n=>/健康保険/.test(n)?'health':/厚生年金/.test(n)?'pension':/雇用保険/.test(n)?'employ':/住民税/.test(n)?'resi':/源泉|所得税/.test(n)?'wh':'';
 const siId=k=>{const i=K.si.find(x=>x.t=='d'&&dkey(x.n)==k);return i?i.id:0};
@@ -283,7 +292,7 @@ let bn=0;if(K.bo.ms.split(',').includes(''+mo(y))){const b=((K.si.find(i=>i.id==
 const da=L.filter(i=>!i.af).reduce((t,i)=>t+(i.m=='fix'?i.v:i.th?T(T(b/1000)*1000*i.v/100):b*i.v/100),0);bn=b-da-L.filter(i=>i.af).reduce((t,i)=>t+(b-da)*i.v/100,0)}
 return{g,net:g-d+n+rf,bn,rf}}
 const pdd=()=>(fp()||{day:25}).day,fk=f=>f.k=='year'?f.d||99:f.d?(f.d-pdd()+31)%31:99,ord=L=>K.fo?L:L.slice().sort((a,b)=>fk(a)-fk(b));
-const SSEL=(k,v)=>`<select data-p="r.${k}.x" data-n="1"><option value="0" ${v?'':'selected'}>給与口座に残す</option>${BO().map(x=>`<option value="${x[0]}" ${x[0]==v?'selected':''}>${x[1]}</option>`).join('')}</select>`;
+const SSEL=(k,v)=>`<select data-p="r.${k}.x" data-n="1"><option value="0" ${v?'':'selected'}>給与口座に残す</option>${BO().map(x=>`<option value="${eh(x[0])}" ${x[0]==v?'selected':''}>${eh(x[1])}</option>`).join('')}</select>`;
 const AR=(l,id)=>`<button class="x" onclick="mvL('${l}',${id},-1)">↑</button><button class="x" onclick="mvL('${l}',${id},1)">↓</button>`;
 function mvL(l,id,d){const L=K[l],i=L.findIndex(x=>x.id==id),j=i+d;if(j<0||j>=L.length)return;[L[i],L[j]]=[L[j],L[i]];ksave();go()}
 function mvC(id,d){const L=K.cat,i=L.findIndex(x=>x.id==id),j=i+d;if(j<0||j>=L.length)return;[L[i],L[j]]=[L[j],L[i]];ksave();go()}
@@ -316,7 +325,7 @@ return`<section><h2>${y.replace('-','年')}月 給与 <span class="mu">${[...new
 const chain=y=>{let op=openB();const ap=k=>{const o=(K.ob||{})[k];if(o)Object.keys(o).forEach(id=>{if(o[id]!=='')op[id]=+o[id]})};for(let k=ym0,n=0;k<y&&n<36;k=nx(k),n++){if(k>ym0)ap(k);const c=kcalc(k,op);op=Object.fromEntries(K.bk.map(b=>[b.id,c.B[b.id].a]))}if(y>ym0)ap(y);return op};
 function clrOb(y,id){if(K.ob&&K.ob[y])delete K.ob[y][id];ksave();go()}
 const fd=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'),catName=c=>c?(K.cat.find(k=>k.id==c)||{n:'?'}).n:'自由資金';
-const cutD=()=>+K.cut||15,pStart=y=>{const[a,b]=y.split('-').map(Number);return fd(new Date(a,b-2,cutD()+1))},pEnd=y=>{const[a,b]=y.split('-').map(Number);return fd(new Date(a,b-1,cutD()))},inP=(d,y)=>d>=pStart(y)&&d<=pEnd(y),ml0=fd(tdy)>pEnd(m0)?nx(m0):m0;
+const cutD=()=>+K.cut||15,pStart=y=>{const[a,b]=y.split('-').map(Number);return fd(new Date(a,b-2,Math.min(cutD(),new Date(a,b-1,0).getDate())+1))},pEnd=y=>{const[a,b]=y.split('-').map(Number);return fd(new Date(a,b-1,Math.min(cutD(),new Date(a,b,0).getDate())))},inP=(d,y)=>d>=pStart(y)&&d<=pEnd(y),ml0=fd(tdy)>pEnd(m0)?nx(m0):m0;
 const mstrip=()=>{const yr=+ym.slice(0,4);return`<div class="f"><button class="mb" onclick="ym=nx(ym,-12);go()">◀ ${yr-1}年</button><button class="mb" onclick="ym='${ml0}';go()">当月</button><button class="mb" onclick="ym=nx(ym,12);go()">${yr+1}年 ▶</button></div><div class="ms4 ms6">${[...Array(12).keys()].map(i=>{const y=yr+'-'+String(i+1).padStart(2,'0');return`<button class="mb ${y==ym?'on':''}" onclick="ym='${y}';go()">${i+1}月</button>`}).join('')}</div>`};
 function kpi(){const dn=pdate(ym0),days=Math.max(1,Math.round((dn-tdy)/864e5)),pp=pdate(nx(ym0,-1)),lp=fd(new Date(pp.getFullYear(),pp.getMonth(),pp.getDate()+1)),nd=fd(dn),L=K.led.filter(l=>l.d>=lp&&l.d<=nd),sp=L.filter(l=>l.pm!='card').reduce((t,l)=>t+l.a,0),cs=L.filter(l=>l.c).reduce((t,l)=>t+l.a,0),bm=ym0,c0=kcalc(bm,chain(bm)),n1=nx(ym0),c1=kcalc(n1,chain(n1)),rem=c0.avail-c0.card-sp,bl=Math.min(ksum(K.cat)-cs,rem),fl=rem-Math.max(0,ksum(K.cat)-cs),nx1=c1.d-ksum(K.cat),tot=K.bk.reduce((t,b)=>t+(+b.bal||0),0),k=(l,v,c,m)=>`<div class="k ${m||''}"><span>${l}</span><b class="${c||''}">${v}</b></div>`;
 return`<div class="kp">${k('現在の総資産',Y(tot),'','main')}${k('今月あと使える金額',Y(rem),rem<0?'ng':'ac')}${k('1日あたり',Y(rem/days),rem<0?'ng':'')}${k('次回給与まで',days+'日')}${k('予算の残り',Y(bl),bl<0?'ng':'')}${k('自由資金',Y(fl),fl<0?'ng':'')}${k('来月の増減予想',Y(nx1),nx1<0?'ng':'ac')}</div>`}
@@ -335,7 +344,7 @@ return`<div class="cols"><div>${payBar()}${h.slice(0,i1)}</section></div><div><s
 const kdel=(l,id)=>{K[l]=K[l].filter(x=>x.id!=id);ksave();go()},add=(l,o)=>{K[l].push({id:++K.nid,...o});ksave();go()};
 const X=(l,id)=>`<button class="x" onclick="kdel('${l}',${id})">×</button>`;
 const TY=[['g','支給(総支給に含む)'],['d','控除(引く)'],['n','手取りに加算(交通費など)']],MD=[['act','実績比率(比率表)'],['fix','固定額'],['rate','総支給×%'],['hr','単価×時間(月ごと入力)'],['mo','月ごとに入力']];
-function setTab(){const bo=(k,v)=>`<select data-p="r.${k}.x" data-n="1">${BO().map(x=>`<option value="${x[0]}" ${x[0]==v?'selected':''}>${x[1]}</option>`).join('')}</select>`,it=(h)=>`<div class="it">${h}</div>`,sc=(t,b,o)=>`<details class="sc" data-t="${t}" ${(OPN[t]??!!o)?'open':''}><summary>${t}</summary>${b}</details>`,L=(t,h)=>`<label>${t} ${h}</label>`;
+function setTab(){const bo=(k,v)=>`<select data-p="r.${k}.x" data-n="1">${BO().map(x=>`<option value="${eh(x[0])}" ${x[0]==v?'selected':''}>${eh(x[1])}</option>`).join('')}</select>`,it=(h)=>`<div class="it">${h}</div>`,sc=(t,b,o)=>`<details class="sc" data-t="${t}" ${(OPN[t]??!!o)?'open':''}><summary>${t}</summary>${b}</details>`,L=(t,h)=>`<label>${t} ${h}</label>`;
 return`<div class="col">`+
 sc('給与・副業など収入の振込(日付・口座・金額)',K.pays.map(p=>it('<div class="r1">'+inp('pays',p.id,'n',p.n,'text')+X('pays',p.id)+'</div><div class="r2">'+sel('pays',p.id,'k',[['sal','給与(手取り×割合)'],['inc','副業・その他(金額)']],p.k||'sal')+L('日',inp('pays',p.id,'day',p.day))+L('口座',sel('pays',p.id,'b',BO(),p.b))+(p.k=='inc'?L('金額',inp('pays',p.id,'a',p.a||0)):L('割合%',inp('pays',p.id,'r',p.r)))+'</div>')).join('')+`<p class="mu">給与が月に複数回、または複数の口座に入る場合は行を追加し、割合(手取りに対する%)の合計を100%にします。1行目が中心口座で、賞与の振込先と、他口座への振替の資金元になります。</p><button class="b" onclick="add('pays',{n:'給与',k:'sal',day:25,b:K.bk[0].id,r:0})">給与を追加</button> <button class="b" onclick="add('pays',{n:'副業',k:'inc',day:25,b:K.bk[0].id,r:0,a:0})">副業・収入を追加</button>`)+
 sc('口座・貯蓄・補填',K.bk.map(b=>it('<div class="r1">'+inp('bk',b.id,'n',b.n,'text')+AR('bk',b.id)+X('bk',b.id)+'</div><div class="r2">'+L('不足時の振替元',sel('bk',b.id,'src',[[0,'給与口座']].concat(BO()),b.src||0))+'<label><input type="checkbox" data-p="bk.'+b.id+'.sv" '+(b.sv?'checked':'')+'>貯蓄口座</label>'+(b.sv?L('目標金額',inp('bk',b.id,'gl',b.gl||0)):'')+'</div>')).join('')+`<button class="b" onclick="add('bk',{n:'新しい口座',bal:0})">口座を追加</button><div class="it">${L('余りの貯蓄先',bo('sb',K.sb))}${L('不足時の補填口座',bo('cb',K.cb))}${L('毎月の貯金額',`<input type="number" inputmode="numeric" data-p="r.sv.x" value="${K.sv}">`)}</div>`)+
@@ -386,7 +395,7 @@ return`<div class="g"><section><h2>貯蓄推移</h2>${chips}<div class="hero"><d
 function mig(){if(!K.yr)K.yr={m:12,a:0};if(!K.cards){K.cards=[];[[1,401],[2,402]].forEach(a=>{const t=K.tr.find(x=>x.id==a[0]&&/クレカ/.test(x.n));if(t){K.cards.push({id:a[1],n:t.n.replace(/クレカ引落|[()]/g,'')||'カード',b:t.b,a:t.a});Object.values(K.m).forEach(mm=>{if(mm['t'+a[0]]!=null){mm['c'+a[1]]=mm['t'+a[0]];delete mm['t'+a[0]]}});K.tr=K.tr.filter(x=>x!==t)}});if(!K.cards.length)K.cards=[{id:401,n:'カード',b:K.pays[0]?K.pays[0].b:1,a:0}]}
 const pb=K.pays[0]?K.pays[0].b:1;K.fx.forEach(f=>{if(f.pm)return;f.pm=f.k=='card'?'card':'bank';f.c=K.cards[0].id;if(f.k=='year'){f.ap=true;f.b=pb}else f.k='m';if(f.pm=='card')f.b=pb});
 K.big.forEach(b=>{if(b.c==null)b.c=K.cards[0].id});
-if(!K.rec){K.rec=[{id:501,ym:'2026-09',g:299440,v:{8:1505,9:6320}}];K.ru=0;K.si.forEach(i=>{if(i.id==8||i.id==9){i.m0=i.m;i.v0=i.v;i.m='act'}})}}
+if(!K.rec){K.rec=[{id:501,ym:'2026-09',g:300000,v:{8:1500,9:9000}}];K.ru=0;K.si.forEach(i=>{if(i.id==8||i.id==9){i.m0=i.m;i.v0=i.v;i.m='act'}})}}
 function bak(){return`<section style="margin-top:12px"><h2>バックアップ(スマホ↔PC移行)</h2><div class="mu">家計簿・給与の設定と、副業会計(収入・経費・給与明細など)をまとめて書き出します。別の端末へは、書き出した文字列を貼り付けて読み込みます(ログイン同期でも移せます)。</div><textarea id="bkt"></textarea><div class="f"><button class="b" onclick="bkt.value=JSON.stringify(window.KK.get())">書き出し</button><button class="b" onclick="abRestore(bkt.value)">読み込み</button></div></section>`}
 async function abRestore(txt){let o;try{o=JSON.parse(txt);if(!o||typeof o!=='object'||!o.bk||!o.pays)throw 0}catch(e){return alert('読み込めませんでした。文字列全体を貼り付けてください')}await window.KK.set(o,Date.now());ksave();go()}
 const abBar=()=>`<div class="f" style="align-items:center;margin:0 0 8px"><button class="x" onclick="kmv(-1)">‹</button><input type="month" id="ym" value="${ym}" onchange="if(this.value){ym=this.value;go()}"><button class="x" onclick="kmv(1)">›</button><button class="b" style="margin:0;padding:3px 10px" onclick="ym=tab==3?m0:tab==2?ml0:ym0;bs=ym;go()">今月</button><span class="mu">給与日 ${[...new Set(K.pays.filter(p=>p.k!='inc').map(p=>pds(ym,p.day)))].join('・')} / 基準月の給与と翌月を試算</span></div>`;
@@ -405,7 +414,7 @@ document.addEventListener('change',e=>{const el=e.target,p=el.dataset.p;if(!p)re
 if(q[0]=='ob'){K.ob=K.ob||{};(K.ob[q[1]]=K.ob[q[1]]||{})[q[2]]=el.value===''?'':+el.value}else if(q[0]=='ct'){const k=kcalc(q[1],openB()).cards.find(x=>x.id==q[2]);(K.m[q[1]]=K.m[q[1]]||{})['c'+q[2]]=v-k.fx-(k.ex||0)}else if(q[0]=='rv'){K.rec.find(x=>x.id==q[1]).v[q[2]]=el.value===''?'':+el.value}else if(q[0]=='mv'){(K.m[q[1]]=K.m[q[1]]||{})[q[2]]=v}else if(q[0]=='o')K[q[1]][q[2]]=v;else if(q[0]=='r'){K[q[1]]=v;if(q[1]=='fo'&&v)K.fx.sort((a,b)=>fk(a)-fk(b))}else K[q[0]].find(x=>x.id==q[1])[q[2]]=v;ksave();go()});
 function nextNet(){const n1=nx(ym0),c=kcalc(n1,chain(n1));return{ym:n1,net:c.s.net,bn:c.s.bn,g:c.s.g,rf:c.s.rf||0}}
 function kDefault(){const k=JSON.parse(JSON.stringify(S0));k.pays=[{id:301,n:'給与',day:25,b:k.pb||2,r:100}];k.cb=k.sb;const keep=K;K=k;try{mig()}finally{K=keep}return k}
-window.KK={get:()=>Object.assign({},K,{taxdb:window.TAXDB?window.TAXDB():undefined}),set:async(v,at)=>{const t=v&&v.taxdb;if(v)delete v.taxdb;K=v;mig();ym0=baseYm();try{localStorage.setItem('kk2',JSON.stringify(K));localStorage.setItem('kk2t',at)}catch(e){}if(t&&window.TAXAPPLY){try{await window.TAXAPPLY(t)}catch(e){console.warn('副業会計データの同期を適用できませんでした',e)}}go()}};
+window.KK={get:()=>Object.assign({},K,{taxdb:window.TAXDB?window.TAXDB():undefined}),set:async(v,at)=>{if(!v||typeof v!=='object'||['bk','pays','si','tr','fx','cat','big','led'].some(k=>!Array.isArray(v[k]))){console.warn('データの形が違うため反映しませんでした');return}const t=v.taxdb;delete v.taxdb;K=v;mig();ym0=baseYm();try{localStorage.setItem('kk2',JSON.stringify(K));localStorage.setItem('kk2t',at)}catch(e){}if(t&&window.TAXAPPLY){try{await window.TAXAPPLY(t)}catch(e){console.warn('副業会計データの同期を適用できませんでした',e)}}go()}};
 
 </script>
 <script>
@@ -877,13 +886,13 @@ function tests(){const r=[],t=(n,ok)=>r.push((ok?'OK  ':'NG  ')+n);
  t('年末調整: 12月の手取り予測にだけ還付が加算される(12月−11月=13,537・11月の還付0)',refundFor('2030-12')===13537&&refundFor('2030-11')===0&&a12.rf===13537&&a11.rf===0&&Math.round(a12.net-a11.net)===13537);
  const bd0=K.bd;K.bd=K.bd.filter(i=>!/還付/.test(i.n));const bn0=sal('2030-12').bn;K.bd=bd0;
  t('年末調整: 賞与の控除にある「還付」項目と二重計上しない(自動還付あり→項目を除外)',Math.round(a12.bn)===Math.round(bn0));
- S.db=mk({});t('年末調整: 自動計算も手入力もない場合は従来どおり賞与の控除にある還付項目(13,537)を使う',refundFor('2030-12')===0&&sal('2030-12').rf===0&&Math.abs(sal('2030-12').bn-bn0-13537)<1);
+ S.db=mk({});t('年末調整: 自動計算も手入力もない場合は従来どおり賞与の控除にある還付項目(10,000)を使う',refundFor('2030-12')===0&&sal('2030-12').rf===0&&Math.abs(sal('2030-12').bn-bn0-10000)<1);
  K.yr={m:12,a:20000};t('年末調整: 手入力の見込額(20,000)を12月の手取りに加算し、賞与の還付項目は除外',refundFor('2030-12')===20000&&sal('2030-12').rf===20000&&Math.round(sal('2030-12').bn)===Math.round(bn0));K.yr={m:12,a:0};
  S.tab='salary';S.edit=null;const fh=crud('salary');
  t('給与タブ: 健康保険料・厚生年金保険料・雇用保険料・源泉所得税・住民税を別々に入力できる',['f_health','f_pension','f_employ','f_wh','f_resi','f_refund','f_gross'].every(id=>fh.includes('id="'+id+'"'))&&fh.includes('健康保険料')&&fh.includes('厚生年金保険料')&&fh.includes('雇用保険料')&&fh.includes('予定から入力'));
  const mj0=mk({salary:[{id:'s',year:2030,month:'4',kind:'給与',gross:300000,health:15120,pension:27450,employ:1500,wh:6000,resi:14800}]});S.db=mj0;const sm=salMonthly();
  t('給与タブ: 月別表に総支給と各保険料が別の列で表示され、年間合計が出る(差引手取り235,130)',sm.includes('健康保険料')&&sm.includes('厚生年金保険料')&&sm.includes('雇用保険料')&&sm.includes('235,130')&&sm.includes('年間合計'));
- S.db=mk({});K.ru=0;const fc=fcSal('2026-10');t('予定から入力: 家計の給与予定(総支給306,800・健康保険15,120・厚生年金27,450・雇用保険=実績比率1,505÷299,440)を給与明細の入力欄へ転記できる',fc.g===306800&&fc.health===15120&&fc.pension===27450&&Math.abs(fc.employ-306800*1505/299440)<1e-6);S.db=mj0;
+ S.db=mk({});K.ru=0;const fc=fcSal('2026-10');t('予定から入力: 家計の給与予定(総支給350,000・健康保険15,000・厚生年金27,000・雇用保険=実績比率1,500÷300,000)を給与明細の入力欄へ転記できる',fc.g===350000&&fc.health===15000&&fc.pension===27000&&Math.abs(fc.employ-350000*1500/300000)<1e-6);S.db=mj0;
  const mj=mk({businesses:[{id:'b',name:'副業'}],income:[{id:'i',date:'2030-04-10',biz:'b',gross:10000,fee:1000,wh:0,status:'未入金'}],expense:[{id:'e',date:'2030-04-15',biz:'b',amount:10000,ratio:60,cat:'通信費',pay:PAY[0]}],salary:[{id:'s',year:2030,month:'4',kind:'給与',gross:300000,health:15120,pension:27450,employ:1500,wh:6000,resi:14800,refund:0}]});S.db=mj;
  const md=mdata(2030),sm2=calc.summary(mj,2030),sumv=k=>md.reduce((x,o)=>x+o[k],0);
  t('月別グラフ: 月ごとの売上・経費・給与の合計が、事業別集計・給与明細の年間合計と一致',sumv('sales')===sm2.biz.b.sales&&sumv('exp')===sm2.biz.b.exp&&sumv('sal')===300000&&sumv('net')===235130&&md[3].sales===10000&&md[3].exp===7000);
@@ -978,26 +987,28 @@ const firebaseConfig = {
 };
 const app = initializeApp(firebaseConfig), auth = getAuth(app), db = getFirestore(app);
 const btn = document.getElementById('syn'), cid = Math.random().toString(36).slice(2);
-let ref = null, unsub = null, timer = null, first = true;
+let ref = null, unsub = null, timer = null, first = true, pushing = false;
 const st = t => { btn.textContent = t; };
 
 async function push() {
   if (!ref) return;
+  if (pushing) { clearTimeout(timer); timer = setTimeout(push, 800); return; }
+  pushing = true;
   try {
     const json = JSON.stringify(window.KK.get());
     if (json.length > 900000) { st('☁ データが大きすぎて同期できません'); return; }
     await setDoc(ref, { json, at: +localStorage.getItem('kk2t') || Date.now(), by: cid });
     st('☁ 同期済');
-  } catch (e) { console.error(e); st('☁ 同期エラー'); }
+  } catch (e) { console.error(e); st('☁ 同期エラー'); } finally { pushing = false; }
 }
 window.onKKSave = () => { if (!ref) return; st('☁ 保存中…'); clearTimeout(timer); timer = setTimeout(push, 800); };
 
 btn.onclick = async () => {
-  if (auth.currentUser) { if (confirm('同期をやめてログアウトしますか?(この端末のデータは残ります)')) signOut(auth); return; }
+  if (auth.currentUser) { if (confirm('同期をやめてログアウトしますか?(この端末のデータは残ります)')) { try { await signOut(auth); } catch (e) { console.error(e); alert('ログアウトに失敗しました'); } } return; }
   const p = new GoogleAuthProvider();
   try { await signInWithPopup(auth, p); }
   catch (e) {
-    if (e.code === 'auth/popup-blocked' || e.code === 'auth/operation-not-supported-in-this-environment') signInWithRedirect(auth, p);
+    if (e.code === 'auth/popup-blocked' || e.code === 'auth/operation-not-supported-in-this-environment') { try { await signInWithRedirect(auth, p); } catch (e2) { console.error(e2); alert('ログインに失敗しました: ' + (e2.code || e2.message)); } }
     else if (e.code !== 'auth/popup-closed-by-user' && e.code !== 'auth/cancelled-popup-request') alert('ログインに失敗しました: ' + e.code);
   }
 };
@@ -1011,7 +1022,7 @@ onAuthStateChanged(auth, u => {
   unsub = onSnapshot(ref, snap => {
     const d = snap.exists() ? snap.data() : null, LT = +localStorage.getItem('kk2t') || 0;
     if (!d) push();
-    else if (d.by !== cid && d.at > LT) { window.KK.set(JSON.parse(d.json), d.at); st('☁ 同期済'); }
+    else if (d.by !== cid && d.at > LT) { try { window.KK.set(JSON.parse(d.json), d.at); st('☁ 同期済'); } catch (e) { console.error(e); st('☁ 同期データが壊れています'); } }
     else if (first && d.at < LT) push();
     else st('☁ 同期済');
     first = false;

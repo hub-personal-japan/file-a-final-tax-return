@@ -128,4 +128,47 @@
 #ab .gl.go b{color:var(--dn)}
 #ab .gl.ok b{color:var(--up)}
 #ab .pg i.dn{background:var(--dn)}
-#ab section{overflow-wrap:normal}#ab .tip{display:none}
+#ab section{overflow-wrap:normal}
+
+/* ===== 統一デザイン(資産管理全体で共通) ===== */
+#ab{--bg:#0b1220;--cd:#121e36;--cd2:#14264a;--ink:#e8eefc;--mu:#8ea0c0;--gd:#d4af37;--up:#f6465d;--dn:#0ecb81;--ac:var(--up);--ng:var(--dn);--ln:#22324f;font-size:13px;line-height:1.45;font-family:inherit}
+#ab section,#ab details.sc{background:linear-gradient(180deg,#121e36,#0f1a30);border:1px solid #22324f;border-radius:10px;padding:10px;box-shadow:0 4px 14px rgba(0,0,0,.22)}
+#ab details.sc{padding:0 10px 8px}#ab details.sc summary{color:#e8eefc;font-size:13px;padding:9px 0}
+#ab h2,.card>b:first-child{display:block;font-size:13px;font-weight:700;letter-spacing:.06em;margin:0 0 6px;padding:2px 0 3px 8px;border-left:3px solid #d4af37;background:linear-gradient(90deg,rgba(212,175,55,.13),transparent);color:#e8eefc;border-bottom:0}
+#ab h3{font-size:12px;color:#8ea0c0;margin:8px 0 3px}
+#ab .hero{background:#14264a;border:1px solid #22324f;border-left:3px solid #d4af37;border-radius:8px}
+#ab .kp .k,#ab .bt1{background:linear-gradient(135deg,#14264a,#0f1a30);border:1px solid #22324f;border-left:3px solid #d4af37;border-radius:10px}
+#ab .bt1{border-top:1px solid #22324f}
+#ab input,#ab select,#ab textarea{background:#0a1324;border:1px solid #22324f;border-radius:6px;color:#e8eefc}
+#ab input:focus,#ab select:focus,#ab textarea:focus{outline:2px solid #d4af37;border-color:transparent}
+#ab .b{background:linear-gradient(135deg,#e6c34f,#b8902a);color:#1a1405;border-radius:6px;font-weight:700}
+#ab .mb{background:#14264a;border:1px solid #22324f;border-radius:6px}#ab .mb.on{border-color:#d4af37;color:#d4af37}
+#ab .wn{background:rgba(212,175,55,.08);border:1px solid #d4af37;color:#f3deb0;border-radius:8px}
+#ab td,#ab th{border-bottom:1px solid #22324f}
+/* 数字の桁そろえ: 全ての金額を同じ書体・同じ大きさ・右端そろえにする */
+#ab,.card,body{font-variant-numeric:tabular-nums}
+#ab .r,#ab td.r,#ab .tr b,#ab .bt1 .r b,#ab .bt1 .af,#ab .big,#ab .kp .k b,#ab .gl b,#ab .tot td.r{font-family:ui-monospace,Menlo,Consolas,"Courier New",monospace;font-variant-numeric:tabular-nums;font-feature-settings:"tnum";letter-spacing:0}
+#ab .tr b,#ab .bt1 .r b,#ab td.r{font-size:13px;font-weight:600;text-align:right}
+#ab .bt1 .af{font-size:13px}#ab .bt1 .af span{font-size:11px}
+#ab .bt1 .r b,#ab .tr b{padding-right:6px}
+#ab input[type=number]{font-family:ui-monospace,Menlo,Consolas,"Courier New",monospace;font-size:13px;text-align:right;padding:3px 5px}
+#ab .bt1 .r input[type=number]{width:96px}
+#ab .big{font-size:22px}
+
+#ab td.r input[type=number]{margin-right:-6px}
+#ab td.r,#ab td.r *{font-size:13px}
+#ab .bt1 .r input[type=number]{padding:3px 0 3px 5px}
+#ab .bt1 .r b{padding-right:1px}
+#ab .bt1 .af{padding:4px 1px 0 6px}
+
+#ab .kp .main b{font-size:26px}
+#ab .kp.r9 .k.main{grid-column:span 2}#ab .kp.r9 .k.main b{font-size:24px}
+#ab .wn2{color:#fbbf24}
+#ab .w input[type=number]{width:80px}
+#ab .w td,#ab .w th{white-space:normal}#ab .w td.r,#ab .w th.r{white-space:nowrap}#ab .w{overflow-x:hidden}
+
+/* 修正: 操作性・アクセシビリティ(ボタンにポインタ、キーボード操作時のフォーカス表示) */
+#ab .tip{display:none}
+#ab .b,#ab .x,#ab .mb{cursor:pointer}
+#ab button:disabled{cursor:not-allowed;opacity:.55}
+#ab :focus-visible{outline:2px solid var(--gd);outline-offset:1px}

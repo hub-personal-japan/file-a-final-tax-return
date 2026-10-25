@@ -12,26 +12,28 @@ const firebaseConfig = {
 };
 const app = initializeApp(firebaseConfig), auth = getAuth(app), db = getFirestore(app);
 const btn = document.getElementById('syn'), cid = Math.random().toString(36).slice(2);
-let ref = null, unsub = null, timer = null, first = true;
+let ref = null, unsub = null, timer = null, first = true, pushing = false;
 const st = t => { btn.textContent = t; };
 
 async function push() {
   if (!ref) return;
+  if (pushing) { clearTimeout(timer); timer = setTimeout(push, 800); return; }
+  pushing = true;
   try {
     const json = JSON.stringify(window.KK.get());
     if (json.length > 900000) { st('☁ データが大きすぎて同期できません'); return; }
     await setDoc(ref, { json, at: +localStorage.getItem('kk2t') || Date.now(), by: cid });
     st('☁ 同期済');
-  } catch (e) { console.error(e); st('☁ 同期エラー'); }
+  } catch (e) { console.error(e); st('☁ 同期エラー'); } finally { pushing = false; }
 }
 window.onKKSave = () => { if (!ref) return; st('☁ 保存中…'); clearTimeout(timer); timer = setTimeout(push, 800); };
 
 btn.onclick = async () => {
-  if (auth.currentUser) { if (confirm('同期をやめてログアウトしますか?(この端末のデータは残ります)')) signOut(auth); return; }
+  if (auth.currentUser) { if (confirm('同期をやめてログアウトしますか?(この端末のデータは残ります)')) { try { await signOut(auth); } catch (e) { console.error(e); alert('ログアウトに失敗しました'); } } return; }
   const p = new GoogleAuthProvider();
   try { await signInWithPopup(auth, p); }
   catch (e) {
-    if (e.code === 'auth/popup-blocked' || e.code === 'auth/operation-not-supported-in-this-environment') signInWithRedirect(auth, p);
+    if (e.code === 'auth/popup-blocked' || e.code === 'auth/operation-not-supported-in-this-environment') { try { await signInWithRedirect(auth, p); } catch (e2) { console.error(e2); alert('ログインに失敗しました: ' + (e2.code || e2.message)); } }
     else if (e.code !== 'auth/popup-closed-by-user' && e.code !== 'auth/cancelled-popup-request') alert('ログインに失敗しました: ' + e.code);
   }
 };
@@ -45,7 +47,7 @@ onAuthStateChanged(auth, u => {
   unsub = onSnapshot(ref, snap => {
     const d = snap.exists() ? snap.data() : null, LT = +localStorage.getItem('kk2t') || 0;
     if (!d) push();
-    else if (d.by !== cid && d.at > LT) { window.KK.set(JSON.parse(d.json), d.at); st('☁ 同期済'); }
+    else if (d.by !== cid && d.at > LT) { try { window.KK.set(JSON.parse(d.json), d.at); st('☁ 同期済'); } catch (e) { console.error(e); st('☁ 同期データが壊れています'); } }
     else if (first && d.at < LT) push();
     else st('☁ 同期済');
     first = false;
