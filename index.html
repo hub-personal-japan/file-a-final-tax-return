@@ -284,7 +284,7 @@ const expIn=y=>EXPS().filter(e=>inP(e.d,y));
 const kn=id=>(K.cards.find(k=>k.id==id)||{n:'?'}).n;
 const expRows=y=>expIn(y).sort((a,b)=>b.d.localeCompare(a.d)).map(e=>`<div class="it fx lr"><span class="mu" style="flex:none;width:112px">${e.d}</span><span style="flex:none;width:74px">経費</span><span style="flex:none;width:64px;text-align:right">${Y(e.a)}</span><span style="flex:1 1 80px;min-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${eh(e.m)}</span><span class="mu">${e.pm=='card'?'クレカ '+eh(kn(e.k)):e.pm=='cash'?'現金':'口座 '+eh(bn(e.b))}</span><button class="x" title="支出・経費タブで編集" onclick="goExp()">✎</button></div>`).join('');
 function goExp(){curApp='tax';S.tab='expense';S.edit=null;R();scrollTo(0,0)}
-const rr=(i,y)=>{const RL=RECS(),SR=RL.slice().sort((a,b)=>a.ym<b.ym?1:-1),R=RL.find(r=>r.id==K.ru)||(y&&SR.find(r=>r.ym<y))||SR[0];if(!R||!R.g)return null;const a=R.v[i.id];return a==null||a===''?null:a/R.g*100};
+const rr=(i,y)=>{const RL=RECS(),SR=RL.slice().sort((a,b)=>a.ym<b.ym?1:-1),R=RL.find(r=>r.id==K.ru)||(y&&SR.find(r=>r.ym<=y))||SR[0];if(!R||!R.g)return null;const a=R.v[i.id];return a==null||a===''?null:a/R.g*100};
 const kval=(i,v,g,y)=>i.m=='fix'?i.v:i.m=='act'?g*(rr(i,y)??i.v)/100:i.m=='rate'?g*i.v/100:i.m=='hr'?T(i.v*v(i.id)):v(i.id);
 const MM=(y,pj)=>pj?Object.fromEntries(Object.entries(M(ym)).filter(e=>e[0][0]=='v')):M(y);
 function sal(y,pj){const m=MM(y,pj),v=i=>+m['v'+i]||0;let g=0,d=0,n=0;const rf=refundFor(y);K.si.filter(i=>i.t=='g').forEach(i=>g+=kval(i,v,0,y));K.si.forEach(i=>{if(i.t=='d')d+=kval(i,v,g,y);if(i.t=='n')n+=kval(i,v,g,y)});
