@@ -423,6 +423,7 @@ const CATS=['通信費','消耗品費','旅費交通費','広告宣伝費','支�
 const S={db:{businesses:[],income:[],expense:[],salary:[],owner:[],assets:[],invest:[],accounts:[],manual:[],opening:[],meta:{}},year:new Date().getFullYear(),tab:'dash',edit:null};
 const ICON={guide:'🧭',dash:'📈',businesses:'🏢',income:'💰',expense:'🧾',salary:'💼',owner:'🔁',assets:'🖥',invest:'📊',ledger:'📚',report:'📑',accounts:'🗂',opening:'🏦',manual:'✍',import:'📥',data:'💾',notes:'⚠'};
 const TABS={guide:'はじめに',dash:'ダッシュボード',businesses:'事業・副業',income:'収入',expense:'支出・経費',salary:'給与明細',owner:'事業主貸借',assets:'固定資産',invest:'投資取引',ledger:'仕訳・帳簿',report:'申告準備',accounts:'勘定科目',opening:'期首残高',manual:'手動仕訳',import:'CSV取込',data:'データ・テスト',notes:'確認事項'};
+try{const _nv=JSON.parse(sessionStorage.getItem('kknav')||'null');if(_nv){if(_nv.a==='ab'||_nv.a==='tax')curApp=_nv.a;if(_nv.t&&TABS[_nv.t])S.tab=_nv.t;if(Number.isInteger(_nv.b)&&_nv.b>=0&&_nv.b<6)tab=_nv.b}}catch(e){}
 const PAY=['普通預金(銀行振込・口座引落)','現金','クレジットカード(後日引落)','未払金(後払い)','個人資金で立替(事業主借)'];
 const ENT={
 businesses:{f:[['name','事業名*','text'],['category','管理用カテゴリ','text'],['tax','税務上の所得区分(要確認)','sel',TAX],['blue','青色申告','sel',['未確認','対象','対象外']],['start','開始日','date'],['end','終了日','date'],['active','状態','sel',['有効','無効']],['note','備考','text']],cols:['name','category','tax','blue','active']},
@@ -636,7 +637,7 @@ const val=(e,r,k)=>k==='net'?salNet(r):k==='abv0'?calc.assetBV(r,S.year-1):k==='
 const ABT=['給与・振替','固定費','家計簿','大きい出費','貯蓄推移','設定'],ABI=['💴','📌','📒','🛍','💹','⚙'];
 const DESC={dash:'家計の今月の状況と、今年の収益(給与・副業・投資)を1画面で確認します',guide:'副業会計を始める手順(6ステップ)と用語の説明',businesses:'副業・事業の登録(名前・所得区分・青色申告の対象)。自由に追加できます',income:'売上の記録。売上・手数料・源泉徴収・入金額を分けて管理し、売掛金を追跡します',expense:'経費の記録。私用と兼ねる支出は事業使用割合(按分)を入力します',salary:'本業の給与明細(総支給・健康保険・厚生年金・雇用保険・源泉・住民税)と年末調整の還付',owner:'事業と家計の間のお金の移動(事業主貸・事業主借)',assets:'パソコンなどの固定資産と減価償却(仮計算)',invest:'株・FX・デイトレードの実現損益。SBI証券のCSVを重複チェック付きで取り込めます',ledger:'仕訳帳・試算表・総勘定元帳・事業別補助元帳(入力から自動作成)',report:'損益・貸借・所得区分別の集計、申告要否の目安、青色申告特別控除の要件チェック',accounts:'勘定科目の追加(費用・収益・資産・負債)',opening:'最初の年の年初残高(2年目以降は自動で繰越されます)',manual:'自動仕訳で表せない取引を借方・貸方で入力します',import:'銀行・カードのCSVを列の対応付けとプレビュー付きで取り込みます',data:'CSV出力・バックアップ・全データ削除・計算テスト',notes:'税務上の確認事項と未実装の機能'};
 const ABD=['基準月の給与の手取りと、口座ごとの振替額・残高を試算します','毎月の固定費(家賃・サブスクなど)の登録と、引落口座・カードの設定','日々の支出の記録(クレカ・現金・口座)と、予算の残りの確認','旅行・家電などの大きい出費を、支払い月ごとに登録・確認します','資産と貯蓄の月別の推移と、今後の増減の見込み','口座・カード・給与の項目・賞与・年末調整・実績比率などの設定'];
-function renderShell(){const nv=document.getElementById('nav');if(!nv)return;const tb=(k,v)=>`<button class="${curApp==='tax'&&S.tab===k?'on':''}" onclick="document.body.classList.remove('navopen');curApp='tax';S.tab='${k}';S.edit=null;R();scrollTo(0,0)">${ICON[k]||'•'} ${v}</button>`;
+function renderShell(){try{sessionStorage.setItem('kknav',JSON.stringify({a:curApp,t:S.tab,b:tab}))}catch(e){}const nv=document.getElementById('nav');if(!nv)return;const tb=(k,v)=>`<button class="${curApp==='tax'&&S.tab===k?'on':''}" onclick="document.body.classList.remove('navopen');curApp='tax';S.tab='${k}';S.edit=null;R();scrollTo(0,0)">${ICON[k]||'•'} ${v}</button>`;
  nv.innerHTML='<div class="logo">◆ 資産管理</div>'+tb('dash',TABS.dash)+'<div class="ngl">家計・給与</div>'+ABT.map((v,i)=>`<button class="${curApp==='ab'&&tab===i?'on':''}" onclick="document.body.classList.remove('navopen');abTab(${i});scrollTo(0,0)">${ABI[i]} ${v}</button>`).join('')+'<div class="ngl">副業会計・申告</div>'+Object.keys(TABS).filter(k=>k!=='dash').map(k=>tb(k,TABS[k])).join('');
  const T=curApp==='ab'?[ABI[tab],ABT[tab],ABD[tab]]:[ICON[S.tab],TABS[S.tab],DESC[S.tab]],pt=document.getElementById('pt'),pd=document.getElementById('pd');if(pt)pt.textContent=(T[0]||'')+' '+(T[1]||'');if(pd){pd.textContent=T[2]||'';pd.title=T[2]||''}
  const yl=document.getElementById('yrl');if(yl)yl.style.display=curApp==='tax'?'flex':'none';const a=document.getElementById('app');if(a)a.className=curApp==='tax'?'tx'+(['report','guide','data'].includes(S.tab)?' cols2':''):'abp'}
@@ -970,7 +971,7 @@ function notes(){return `<div class="card"><b>税務上の確認事項・未実�
 <li>事業別集計(ダッシュボード)は収入の手数料・経費・固定資産の仮償却費・手動仕訳の損益科目(事業を指定した分は事業別、未指定は「(未設定)」)を含み、帳簿の損益と一致します。返金・取消のCSV行(負の金額)は自動取込せず、手動で処理します。</li>
 <li>投資損益は手入力で、取得価額の自動計算・損益通算・繰越は未実装です。投資は事業売上に合算しません。</li>
 <li>証憑はファイル名の記録のみで、ファイル自体は保存しません。電子帳簿保存法の要件を満たすことは保証しません。OCR・サーバー連携も未実装です。</li></ul></div>`}
-load().then(d=>{if(d!==undefined&&d!==null&&(typeof d!=='object'||Array.isArray(d))){S.nostore=true;S.loadError='保存済みデータの形式が不正です。上書きを防ぐため保存を停止しました。バックアップから復元するにはデータを退避してください。'}else if(d)S.db=d;fix(S.db);R()}).catch(e=>{S.nostore=true;fix(S.db);R()});
+load().then(d=>{if(d!==undefined&&d!==null&&(typeof d!=='object'||Array.isArray(d))){S.nostore=true;S.loadError='保存済みデータの形式が不正です。上書きを防ぐため保存を停止しました。バックアップから復元するにはデータを退避してください。'}else if(d)S.db=d;fix(S.db);go()}).catch(e=>{S.nostore=true;fix(S.db);go()});
 </script>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
